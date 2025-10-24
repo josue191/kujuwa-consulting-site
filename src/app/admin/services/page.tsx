@@ -1,14 +1,5 @@
 
-'use client';
-import { usePathname } from 'next/navigation';
-import {
-  Briefcase,
-  Users,
-  BarChart,
-  FileText,
-  Settings,
-  Building,
-} from 'lucide-react';
+'use client'
 import {
   SidebarProvider,
   Sidebar,
@@ -22,9 +13,23 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import Logo from '@/components/shared/Logo';
-import Dashboard from '@/components/admin/Dashboard';
+import {
+  Briefcase,
+  Users,
+  BarChart,
+  FileText,
+  Settings,
+  Building,
+} from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
-export default function AdminPage() {
+function AdminLayout({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title: string;
+}) {
   const pathname = usePathname();
   return (
     <SidebarProvider>
@@ -42,25 +47,37 @@ export default function AdminPage() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton href="/admin/contenu" isActive={pathname === '/admin/contenu'}>
+                <SidebarMenuButton
+                  href="/admin/contenu"
+                  isActive={pathname === '/admin/contenu'}
+                >
                   <FileText />
                   Contenu
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton href="/admin/candidatures" isActive={pathname === '/admin/candidatures'}>
+                <SidebarMenuButton
+                  href="/admin/candidatures"
+                  isActive={pathname === '/admin/candidatures'}
+                >
                   <Briefcase />
                   Candidatures
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton href="/admin/services" isActive={pathname === '/admin/services'}>
+                <SidebarMenuButton
+                  href="/admin/services"
+                  isActive={pathname === '/admin/services'}
+                >
                   <Building />
                   Services
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton href="/admin/utilisateurs" isActive={pathname === '/admin/utilisateurs'}>
+                <SidebarMenuButton
+                  href="/admin/utilisateurs"
+                  isActive={pathname === '/admin/utilisateurs'}
+                >
                   <Users />
                   Utilisateurs
                 </SidebarMenuButton>
@@ -82,17 +99,24 @@ export default function AdminPage() {
           <header className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="md:hidden" />
-              <h1 className="text-2xl font-bold font-headline">Tableau de bord</h1>
+              <h1 className="text-2xl font-bold font-headline">{title}</h1>
             </div>
-             <div>
-                {/* User menu can go here */}
-            </div>
+            <div>{/* User menu can go here */}</div>
           </header>
-          <div className="p-4 lg:p-8">
-            <Dashboard />
-          </div>
+          <div className="p-4 lg:p-8">{children}</div>
         </SidebarInset>
       </div>
     </SidebarProvider>
   );
+}
+
+export default function ServicesPage() {
+    return (
+        <AdminLayout title="Services">
+            <div className="text-center">
+                <h2 className="text-2xl font-bold">Gestion des services</h2>
+                <p className="text-muted-foreground mt-2">Cette page est en cours de construction.</p>
+            </div>
+        </AdminLayout>
+    );
 }
