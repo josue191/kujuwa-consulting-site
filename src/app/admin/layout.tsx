@@ -35,11 +35,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   const getTitle = () => {
-    const activeItem = navItems.find(item => pathname.startsWith(item.href) && (item.href.length > 6 || item.href === '/admin'));
-    
-    if(pathname === '/admin') return 'Tableau de bord';
-
-    return activeItem ? activeItem.label : '';
+    if (pathname === '/admin') return 'Tableau de bord';
+    const activeItem = navItems.find(item => pathname.startsWith(item.href) && item.href !== '/admin');
+    return activeItem ? activeItem.label : 'Tableau de bord';
   };
   
   const title = getTitle();
