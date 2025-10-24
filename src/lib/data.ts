@@ -27,6 +27,7 @@ export const navLinks = [
   { href: '/nos-realisations', label: 'Nos réalisations et recherches' },
   { href: '/offres-d-emploi', label: 'Offres d’emploi' },
   { href: '/contact', label: 'Contact' },
+  { href: '/admin', label: 'Admin' },
 ];
 
 export const heroContent = {
