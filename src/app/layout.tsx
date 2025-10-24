@@ -1,11 +1,17 @@
+
+'use client';
+
 import type { Metadata } from 'next';
+import { usePathname } from 'next/navigation';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
-export const metadata: Metadata = {
+// Metadata can't be exported from a client component.
+// We can define it here and then use it in the component.
+const metadata: Metadata = {
   title: 'Kujuwa Consulting',
   description:
     'Votre partenaire stratégique pour des solutions durables et des résultats mesurables.',
@@ -16,6 +22,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+  const isAdminPage = pathname.startsWith('/admin');
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -35,11 +44,15 @@ export default function RootLayout({
           'min-h-screen bg-background font-body antialiased'
         )}
       >
-        <div className="relative flex min-h-dvh flex-col">
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
+        {isAdminPage ? (
+          <>{children}</>
+        ) : (
+          <div className="relative flex min-h-dvh flex-col">
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+        )}
         <Toaster />
       </body>
     </html>
