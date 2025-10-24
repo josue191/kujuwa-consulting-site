@@ -1,3 +1,112 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-1",
+      "description": "Dynamic background image of data analysis for hero section.",
+      "imageUrl": "https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxkYXRhJTIwYW5hbHlzaXN8ZW58MHx8fHwxNzYxMjQxMjE1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "data analysis"
+    },
+    {
+      "id": "hero-2",
+      "description": "Dynamic background image of construction site for hero section.",
+      "imageUrl": "https://images.unsplash.com/photo-1575281923032-f40d94ef6160?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjb25zdHJ1Y3Rpb24lMjBzaXRlfGVufDB8fHx8MTc2MTE2NjY0M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "construction site"
+    },
+    {
+      "id": "hero-3",
+      "description": "Dynamic background image of transport vehicles for hero section.",
+      "imageUrl": "https://images.unsplash.com/photo-1645888921404-604ed47d6be1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx0cmFuc3BvcnRhdGlvbiUyMGxvZ2lzdGljc3xlbnwwfHx8fDE3NjEyODc1OTh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "transportation logistics"
+    },
+    {
+      "id": "team-1",
+      "description": "Photo of the first team member.",
+      "imageUrl": "https://images.unsplash.com/photo-1573496358961-3c82861ab8f4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdHxlbnwwfHx8fDE3NjExOTk4NDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "professional headshot"
+    },
+    {
+      "id": "team-2",
+      "description": "Photo of the second team member.",
+      "imageUrl": "https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdHxlbnwwfHx8fDE3NjExOTk4NDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "professional headshot"
+    },
+    {
+      "id": "team-3",
+      "description": "Photo of the third team member.",
+      "imageUrl": "https://images.unsplash.com/photo-1652471943570-f3590a4e52ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdHxlbnwwfHx8fDE3NjExOTk4NDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "professional headshot"
+    },
+    {
+      "id": "team-4",
+      "description": "Photo of the fourth team member.",
+      "imageUrl": "https://images.unsplash.com/photo-1573496358961-3c82861ab8f4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdHxlbnwwfHx8fDE3NjExOTk4NDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "professional headshot"
+    },
+    {
+      "id": "realisation-1",
+      "description": "Image for the first completed project.",
+      "imageUrl": "https://images.unsplash.com/photo-1758519289022-5f9dea0d8cdc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxidXNpbmVzcyUyMHJlcG9ydHxlbnwwfHx8fDE3NjEyODc1OTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "business report"
+    },
+    {
+      "id": "realisation-2",
+      "description": "Image for the second completed project.",
+      "imageUrl": "https://images.unsplash.com/photo-1628921926657-9a19551cfc52?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxidWlsZGluZyUyMHByb2plY3R8ZW58MHx8fHwxNzYxMjMzMjYwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "building project"
+    },
+    {
+      "id": "realisation-3",
+      "description": "Image for the third completed project.",
+      "imageUrl": "https://images.unsplash.com/photo-1758940886543-c8146b0377fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjb21tdW5pdHklMjB0cmFpbmluZ3xlbnwwfHx8fDE3NjEyODc1OTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "community training"
+    },
+    {
+      "id": "map-placeholder",
+      "description": "Placeholder image for Google Maps.",
+      "imageUrl": "https://images.unsplash.com/photo-1446776899648-aa78eefe8ed0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjaXR5JTIwbWFwfGVufDB8fHx8MTc2MTE3NDExMXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "city map"
+    },
+    {
+      "id": "service-consultance",
+      "description": "Image for the consultancy service.",
+      "imageUrl": "https://images.unsplash.com/photo-1603202662747-00e33e7d1468?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxidXNpbmVzcyUyMG1lZXRpbmd8ZW58MHx8fHwxNzYxMTU5MzQzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "business meeting"
+    },
+    {
+      "id": "service-transport",
+      "description": "Image for the transport service.",
+      "imageUrl": "https://images.unsplash.com/photo-1592838064575-70ed626d3a0e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxkZWxpdmVyeSUyMHRydWNrfGVufDB8fHx8MTc2MTIxODgwNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "delivery truck"
+    },
+    {
+      "id": "service-immobilier",
+      "description": "Image for the real estate service.",
+      "imageUrl": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8bW9kZXJuJTIwaG91c2V8ZW58MHx8fHwxNzYxMjc4OTU1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "modern house"
+    },
+    {
+      "id": "service-construction",
+      "description": "Image for the construction service.",
+      "imageUrl": "https://images.unsplash.com/photo-1587582423116-ec07293f0395?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjb25zdHJ1Y3Rpb24lMjB3b3JrZXJ8ZW58MHx8fHwxNzYxMTg2NTY4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "construction worker"
+    },
+    {
+      "id": "service-papeterie",
+      "description": "Image for the stationery service.",
+      "imageUrl": "https://images.unsplash.com/photo-1454587399083-b11b22f48fb6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8b2ZmaWNlJTIwc3VwcGxpZXN8ZW58MHx8fHwxNzYxMjc0Nzg4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "office supplies"
+    },
+    {
+      "id": "service-agro",
+      "description": "Image for the agriculture and commerce service.",
+      "imageUrl": "https://images.unsplash.com/photo-1595024600400-2a49b9fce270?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3aGVhdCUyMGZpZWxkfGVufDB8fHx8MTc2MTIwNDk4Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "wheat field"
+    },
+    {
+      "id": "service-mecanique",
+      "description": "Image for the mechanics service.",
+      "imageUrl": "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjYXIlMjBlbmdpbmV8ZW58MHx8fHwxNzYxMjA1MTY5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "car engine"
+    }
+  ]
 }
