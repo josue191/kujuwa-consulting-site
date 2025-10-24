@@ -110,28 +110,6 @@ export const aboutUsContent = {
     'Qualité dans le résultat',
     'Engagement et transparence',
   ],
-  team: [
-    {
-      name: 'John Doe',
-      role: 'Directeur Général',
-      image: PlaceHolderImages.find((img) => img.id === 'team-1'),
-    },
-    {
-      name: 'Jane Smith',
-      role: 'Directrice des Opérations',
-      image: PlaceHolderImages.find((img) => img.id === 'team-2'),
-    },
-    {
-      name: 'David Martin',
-      role: 'Chef de projet senior',
-      image: PlaceHolderImages.find((img) => img.id === 'team-3'),
-    },
-    {
-      name: 'Sarah Lee',
-      role: 'Analyste Financier',
-      image: PlaceHolderImages.find((img) => img.id === 'team-4'),
-    },
-  ],
   motto:
     '“La rigueur dans l’action et la qualité dans le résultat pour une meilleure satisfaction.”',
 };
