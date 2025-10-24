@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Briefcase,
@@ -34,7 +35,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   const getTitle = () => {
-    const activeItem = navItems.find(item => item.href === pathname);
+    const activeItem = navItems.find(item => pathname.startsWith(item.href) && (item.href.length > 6 || item.href === '/admin'));
+    
+    if(pathname === '/admin') return 'Tableau de bord';
+
     return activeItem ? activeItem.label : '';
   };
   
@@ -51,10 +55,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton href={item.href} isActive={pathname === item.href}>
-                    <item.icon />
-                    {item.label}
-                  </SidebarMenuButton>
+                    <SidebarMenuButton asChild isActive={pathname === item.href}>
+                        <Link href={item.href}>
+                            <item.icon />
+                            {item.label}
+                        </Link>
+                    </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -62,7 +68,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <SidebarFooter>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton href="#">
+                <SidebarMenuButton>
                   <Settings />
                   Paramètres
                 </SidebarMenuButton>
