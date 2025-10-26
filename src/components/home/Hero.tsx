@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -31,7 +32,7 @@ export default function Hero() {
                   data-ai-hint={img.imageHint}
                   priority={index === 0}
                 />
-                <div className="absolute inset-0 bg-black/60" />
+                <div className="absolute inset-0 bg-black/70" />
               </div>
             </CarouselItem>
           ))}
