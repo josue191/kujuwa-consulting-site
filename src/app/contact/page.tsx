@@ -11,17 +11,17 @@ export default function ContactPage() {
         title={contactPageContent.title}
         description={contactPageContent.description}
       />
-      <div className="container mx-auto max-w-7xl py-12 sm:py-16">
-        <div className="grid grid-cols-1 gap-16 md:grid-cols-5">
+      <div className="container mx-auto max-w-7xl py-12 sm:py-16 px-4">
+        <div className="grid grid-cols-1 gap-y-16 md:grid-cols-5 md:gap-x-16">
           <div className="md:col-span-3">
             <ContactForm />
           </div>
           <div className="md:col-span-2 space-y-8">
             <h3 className="font-headline text-2xl font-bold">Nos Coordonnées</h3>
-            <div className="space-y-4 text-lg">
+            <div className="space-y-6 text-lg">
                 <div className="flex items-start gap-4">
                     <Mail className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
-                    <a href={`mailto:${contactDetails.email}`} className="hover:text-primary transition-colors">{contactDetails.email}</a>
+                    <a href={`mailto:${contactDetails.email}`} className="hover:text-primary transition-colors break-all">{contactDetails.email}</a>
                 </div>
                  <div className="flex items-start gap-4">
                     <Phone className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
