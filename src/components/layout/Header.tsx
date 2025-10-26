@@ -2,15 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, Globe } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { navLinks } from '@/lib/data';
 import Logo from '@/components/shared/Logo';
 import { cn } from '@/lib/utils';
@@ -78,18 +72,6 @@ export default function Header() {
           </div>
 
           <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Globe className="h-5 w-5" />
-                  <span className="sr-only">Changer de langue</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>Français</DropdownMenuItem>
-                <DropdownMenuItem>English</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
             <Button asChild className="bg-primary hover:bg-accent transition-all duration-300">
               <Link href="/demander-un-devis">Demander un devis</Link>
             </Button>

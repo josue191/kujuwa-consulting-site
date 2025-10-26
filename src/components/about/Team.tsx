@@ -2,29 +2,31 @@
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useTranslations } from 'next-intl';
 
 export default function Team() {
-  const t = useTranslations('AboutUsPage');
   const teamMembers = [
     {
       id: 'team-1',
       name: 'John Doe',
+      role: 'Directeur Général',
       imageHint: 'professional headshot',
     },
     {
       id: 'team-2',
       name: 'Jane Smith',
+      role: 'Directrice des Opérations',
       imageHint: 'professional headshot',
     },
     {
       id: 'team-3',
       name: 'David Martin',
+      role: 'Chef de projet senior',
       imageHint: 'professional headshot',
     },
     {
       id: 'team-4',
       name: 'Sarah Lee',
+      role: 'Analyste Financier',
       imageHint: 'professional headshot',
     },
   ];
@@ -32,13 +34,13 @@ export default function Team() {
   return (
     <section>
       <div className="text-center">
-        <h2 className="font-headline text-3xl font-bold">{t('teamTitle')}</h2>
+        <h2 className="font-headline text-3xl font-bold">Notre Équipe</h2>
         <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-          {t('teamDescription')}
+          Rencontrez les experts et les leaders qui pilotent notre mission.
         </p>
       </div>
       <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-        {teamMembers.map((member, index) => {
+        {teamMembers.map((member) => {
           const image = PlaceHolderImages.find((img) => img.id === member.id);
           return (
             <Card
@@ -60,7 +62,7 @@ export default function Team() {
                 <h3 className="font-headline text-lg font-semibold">
                   {member.name}
                 </h3>
-                <p className="text-sm text-primary">{t(`team.${index}.role`)}</p>
+                <p className="text-sm text-primary">{member.role}</p>
               </CardContent>
             </Card>
           );

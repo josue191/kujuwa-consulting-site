@@ -1,17 +1,12 @@
-
-'use client';
-
-import type { Metadata } from 'next';
-import { usePathname } from 'next/navigation';
 import './globals.css';
+import type { Metadata } from 'next';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import { usePathname } from 'next/navigation';
 
-// Metadata can't be exported from a client component.
-// We can define it here and then use it in the component.
-const metadata: Metadata = {
+export const metadata: Metadata = {
   title: 'Kujuwa Consulting',
   description:
     'Votre partenaire stratégique pour des solutions durables et des résultats mesurables.',
@@ -19,15 +14,15 @@ const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   const pathname = usePathname();
-  const isAdminPage = pathname.startsWith('/admin');
+  const isAdminPage = pathname?.startsWith('/admin');
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
+    <html lang="fr" suppressHydrationWarning>
+       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
