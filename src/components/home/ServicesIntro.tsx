@@ -4,13 +4,13 @@ import { introContent, serviceIntros } from '@/lib/data';
 export default function ServicesIntro() {
   return (
     <section className="py-16 sm:py-24">
-      <div className="container mx-auto max-w-7xl">
+      <div className="container mx-auto max-w-7xl px-4">
         <div className="text-center">
-          <p className="mx-auto max-w-3xl text-lg text-muted-foreground md:text-xl">
+          <p className="mx-auto max-w-3xl text-base text-muted-foreground md:text-xl">
             {introContent.paragraph}
           </p>
         </div>
-        <div className="mt-16 grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-7">
+        <div className="mt-12 grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-7">
           {serviceIntros.map((service) => (
             <Card
               key={service.name}

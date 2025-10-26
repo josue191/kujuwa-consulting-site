@@ -45,7 +45,7 @@ export default function Hero() {
 
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="container mx-auto max-w-4xl px-4 text-center text-primary-foreground">
-          <h1 className="font-headline text-4xl font-bold leading-tight md:text-6xl">
+          <h1 className="font-headline text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
             {heroContent.title}
           </h1>
           <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
