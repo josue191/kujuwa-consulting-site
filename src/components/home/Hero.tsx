@@ -58,7 +58,7 @@ export default function Hero() {
                 {heroContent.buttons.primary.label}
               </Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground bg-transparent hover:bg-primary-foreground hover:text-primary" asChild>
+            <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" asChild>
               <Link href={heroContent.buttons.secondary.href}>
                 {heroContent.buttons.secondary.label}
               </Link>
