@@ -2,9 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
-import { usePathname } from 'next/navigation';
+import MainLayout from '@/components/layout/MainLayout';
 
 export const metadata: Metadata = {
   title: 'Kujuwa Consulting',
@@ -17,9 +15,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const isAdminPage = pathname?.startsWith('/admin');
-
   return (
     <html lang="fr" suppressHydrationWarning>
        <head>
@@ -39,15 +34,7 @@ export default function RootLayout({
           'min-h-screen bg-background font-body antialiased'
         )}
       >
-        {isAdminPage ? (
-          <>{children}</>
-        ) : (
-          <div className="relative flex min-h-dvh flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
-        )}
+        <MainLayout>{children}</MainLayout>
         <Toaster />
       </body>
     </html>
