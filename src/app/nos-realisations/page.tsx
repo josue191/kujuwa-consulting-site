@@ -31,7 +31,7 @@ export default function RealisationsPage() {
 
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
           {realisationsContent.projects.map((project, index) => (
-            <Card key={index} className="flex flex-col overflow-hidden">
+            <Card key={index} className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
               {project.image && (
                 <div className="relative h-56 w-full">
                   <Image
