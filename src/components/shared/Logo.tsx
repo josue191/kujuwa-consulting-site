@@ -9,7 +9,6 @@ const Logo = () => {
         alt="Kujuwa Consulting Logo"
         width={180}
         height={40}
-        className="object-contain"
         priority
       />
     </Link>
