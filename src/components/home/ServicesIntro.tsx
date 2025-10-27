@@ -1,5 +1,13 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { introContent, serviceIntros } from '@/lib/data';
+import { introContent } from '@/lib/data';
+import { CheckCircle } from 'lucide-react';
+
+const detailedServices = [
+  'Consultance en recherche et étude, suivi et évaluation des projets et programmes ;',
+  'Consultance en collecte, analyse, traitement des données, en cartographie et design/ infographie;',
+  'Formation professionnelle et renforcement des capacités en Suivi & Evaluation, en Analyse et traitement des données ;',
+  'Consultance en audit comptable et contrôle ;',
+  'Consultance en Communication & Gestion de l’information ;',
+];
 
 export default function ServicesIntro() {
   return (
@@ -10,20 +18,15 @@ export default function ServicesIntro() {
             {introContent.paragraph}
           </p>
         </div>
-        <div className="mt-12 grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-7">
-          {serviceIntros.map((service) => (
-            <Card
-              key={service.name}
-              className="group transform transition-transform duration-300 hover:-translate-y-2"
-            >
-              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-                <service.icon className="mb-4 h-10 w-10 text-primary transition-colors duration-300 group-hover:text-accent" />
-                <h3 className="font-headline text-md font-semibold">
-                  {service.name}
-                </h3>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="mt-12 max-w-4xl mx-auto">
+          <ul className="space-y-4">
+            {detailedServices.map((service, index) => (
+              <li key={index} className="flex items-start gap-4">
+                <CheckCircle className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
+                <span className="text-lg text-foreground">{service}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>
