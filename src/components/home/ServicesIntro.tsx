@@ -1,12 +1,35 @@
+'use client';
 import { introContent } from '@/lib/data';
-import { CheckCircle } from 'lucide-react';
+import {
+  ClipboardList,
+  Database,
+  Users,
+  ShieldCheck,
+  Megaphone,
+} from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 const detailedServices = [
-  'Consultance en recherche et étude, suivi et évaluation des projets et programmes ;',
-  'Consultance en collecte, analyse, traitement des données, en cartographie et design/ infographie;',
-  'Formation professionnelle et renforcement des capacités en Suivi & Evaluation, en Analyse et traitement des données ;',
-  'Consultance en audit comptable et contrôle ;',
-  'Consultance en Communication & Gestion de l’information ;',
+  {
+    text: 'Consultance en recherche et étude, suivi et évaluation des projets et programmes',
+    icon: ClipboardList,
+  },
+  {
+    text: 'Consultance en collecte, analyse, traitement des données, en cartographie et design/infographie',
+    icon: Database,
+  },
+  {
+    text: 'Formation professionnelle et renforcement des capacités en Suivi & Evaluation, en Analyse et traitement des données',
+    icon: Users,
+  },
+  {
+    text: 'Consultance en audit comptable et contrôle',
+    icon: ShieldCheck,
+  },
+  {
+    text: 'Consultance en Communication & Gestion de l’information',
+    icon: Megaphone,
+  },
 ];
 
 export default function ServicesIntro() {
@@ -18,15 +41,18 @@ export default function ServicesIntro() {
             {introContent.paragraph}
           </p>
         </div>
-        <div className="mt-12 max-w-4xl mx-auto">
-          <ul className="space-y-4">
-            {detailedServices.map((service, index) => (
-              <li key={index} className="flex items-start gap-4">
-                <CheckCircle className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
-                <span className="text-lg text-foreground">{service}</span>
-              </li>
-            ))}
-          </ul>
+        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {detailedServices.map((service, index) => (
+            <Card
+              key={index}
+              className="flex items-center p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+            >
+              <CardContent className="flex items-start gap-4 p-0">
+                <service.icon className="h-10 w-10 flex-shrink-0 text-primary mt-1" />
+                <span className="text-md text-foreground">{service.text}</span>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     </section>
