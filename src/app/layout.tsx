@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import MainLayout from '@/components/layout/MainLayout';
+import { ThemeProvider } from '@/components/providers/ThemeProvider';
 
 export const metadata: Metadata = {
   title: 'Kujuwa Consulting',
@@ -17,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr" suppressHydrationWarning>
-       <head>
+      <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -30,12 +31,17 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={cn(
-          'min-h-screen bg-background font-body antialiased'
-        )}
+        className={cn('min-h-screen bg-background font-body antialiased')}
       >
-        <MainLayout>{children}</MainLayout>
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <MainLayout>{children}</MainLayout>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
