@@ -1,4 +1,5 @@
 'use client';
+import { useRef } from 'react';
 import { introContent } from '@/lib/data';
 import {
   ClipboardList,
@@ -15,6 +16,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import Autoplay from 'embla-carousel-autoplay';
 
 const detailedServices = [
   {
@@ -40,6 +42,10 @@ const detailedServices = [
 ];
 
 export default function ServicesIntro() {
+   const plugin = useRef(
+    Autoplay({ delay: 3000, stopOnInteraction: true })
+  );
+
   return (
     <section className="py-16 sm:py-24">
       <div className="container mx-auto max-w-7xl px-4">
@@ -49,10 +55,13 @@ export default function ServicesIntro() {
           </p>
         </div>
         <Carousel
+          plugins={[plugin.current]}
           opts={{
             align: 'start',
             loop: true,
           }}
+          onMouseEnter={plugin.current.stop}
+          onMouseLeave={plugin.current.reset}
           className="w-full mt-12"
         >
           <CarouselContent>
@@ -60,7 +69,7 @@ export default function ServicesIntro() {
               <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                 <div className="p-1 h-full">
                   <Card
-                    className="flex items-center p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 h-full"
+                    className="flex items-center p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 h-48 rounded-2xl"
                   >
                     <CardContent className="flex items-start gap-4 p-0">
                       <service.icon className="h-10 w-10 flex-shrink-0 text-primary mt-1" />
