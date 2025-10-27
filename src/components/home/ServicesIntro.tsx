@@ -8,6 +8,13 @@ import {
   Megaphone,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
 
 const detailedServices = [
   {
@@ -41,19 +48,34 @@ export default function ServicesIntro() {
             {introContent.paragraph}
           </p>
         </div>
-        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {detailedServices.map((service, index) => (
-            <Card
-              key={index}
-              className="flex items-center p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
-            >
-              <CardContent className="flex items-start gap-4 p-0">
-                <service.icon className="h-10 w-10 flex-shrink-0 text-primary mt-1" />
-                <span className="text-md text-foreground">{service.text}</span>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Carousel
+          opts={{
+            align: 'start',
+            loop: true,
+          }}
+          className="w-full mt-12"
+        >
+          <CarouselContent>
+            {detailedServices.map((service, index) => (
+              <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
+                <div className="p-1 h-full">
+                  <Card
+                    className="flex items-center p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 h-full"
+                  >
+                    <CardContent className="flex items-start gap-4 p-0">
+                      <service.icon className="h-10 w-10 flex-shrink-0 text-primary mt-1" />
+                      <span className="text-md text-foreground">
+                        {service.text}
+                      </span>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="hidden md:flex" />
+          <CarouselNext className="hidden md:flex"/>
+        </Carousel>
       </div>
     </section>
   );
