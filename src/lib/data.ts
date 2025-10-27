@@ -90,9 +90,9 @@ export const valuesContent = {
 
 export const footerContent = {
   legal: [
-    'RCCM: CD/KIN/RCCM/21-B-00057',
-    'N° d’identification nationale: 5-83-N39446B',
-    'N° d’impôt: A2117565P',
+    'RCCM: CD/KNG/RCCM/25-B-00821',
+    'N° d’identification nationale: 01-H4901-N63778Z',
+    'N° d’impôt: A2518222K',
   ],
   copyright: `Copyright © Kujuwa Consulting ${new Date().getFullYear()}`,
 };
