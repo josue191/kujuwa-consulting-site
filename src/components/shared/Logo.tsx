@@ -10,6 +10,7 @@ const Logo = () => {
         width={180}
         height={40}
         priority
+        className="h-auto w-44"
       />
     </Link>
   );
