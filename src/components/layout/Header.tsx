@@ -72,8 +72,8 @@ export default function Header() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button asChild className="bg-primary hover:bg-accent transition-all duration-300">
-              <Link href="/demander-un-devis">Demander un devis</Link>
+            <Button asChild>
+              <Link href="/contact">Nous contacter</Link>
             </Button>
           </div>
         </div>
