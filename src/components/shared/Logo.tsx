@@ -3,14 +3,13 @@ import Image from 'next/image';
 
 const Logo = () => {
   return (
-    <Link href="/" className="flex items-center">
+    <Link href="/" className="relative flex items-center w-44 h-10">
       <Image
         src="/logo.png"
         alt="Kujuwa Consulting Logo"
-        width={180}
-        height={40}
+        fill
         priority
-        className="h-auto w-44"
+        className="object-contain"
       />
     </Link>
   );
