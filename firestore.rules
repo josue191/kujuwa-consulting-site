@@ -1,3 +1,4 @@
+
 /**
  * @file Firestore Security Rules for Kujuwa Consulting.
  *
@@ -24,6 +25,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null; // For now, any logged in user is an admin.
+    }
 
     /**
      * @description Allows anyone to read service categories, but restricts writing.
@@ -74,13 +79,13 @@ service cloud.firestore {
     }
 
     /**
-     * @description Restricts access to job applications, allowing no reads or writes.
+     * @description Allows anyone to create an application. Only admins can read/list them.
      * @path /jobPostings/{jobPostingId}/applications
-     * @deny (get, list, create, update, delete): No one can read or write job applications.
-     * @principle Strict denial of access.
+     * @principle Public create, restricted read/list.
      */
     match /jobPostings/{jobPostingId}/applications/{applicationId} {
-      allow get, list, create, update, delete: if false;
+      allow create: if true;
+      allow get, list, update, delete: if isAdmin();
     }
 
     /**

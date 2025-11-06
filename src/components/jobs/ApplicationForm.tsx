@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,48 +24,73 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useFirestore } from "@/firebase";
+import { jobOffersContent } from "@/lib/data";
+
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
 
 const formSchema = z.object({
-  jobTitle: z.string({ required_error: "Veuillez sélectionner un poste." }),
-  fullName: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères." }),
+  jobPostingId: z.string({ required_error: "Veuillez sélectionner un poste." }),
+  name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères." }),
   email: z.string().email({ message: "Veuillez entrer une adresse email valide." }),
   phone: z.string().min(10, { message: "Le numéro de téléphone doit être valide." }),
-  cv: z.any()
-    .refine((files) => files?.length == 1, "Le CV est requis.")
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `La taille max. est 5MB.`)
-    .refine(
-      (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
-      ".pdf, .doc, .docx seulement."
-    ),
-  message: z.string().min(10, { message: "Le message doit contenir au moins 10 caractères." }),
+  // We're skipping CV upload for now as it requires file storage setup.
+  // cv: z.any()
+  //   .refine((files) => files?.length == 1, "Le CV est requis.")
+  //   .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `La taille max. est 5MB.`)
+  //   .refine(
+  //     (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
+  //     ".pdf, .doc, .docx seulement."
+  //   ),
+  motivation: z.string().min(10, { message: "Le message doit contenir au moins 10 caractères." }),
 });
 
-type ApplicationFormProps = {
-  offers: { title: string }[];
-};
-
-export default function ApplicationForm({ offers }: ApplicationFormProps) {
+export default function ApplicationForm() {
   const { toast } = useToast();
+  const firestore = useFirestore();
+
+  const offers = jobOffersContent.offers.map(offer => ({
+      ...offer,
+      // Create a simple ID from the title
+      id: offer.title.toLowerCase().replace(/ /g, '-').replace(/[^a-z0-9-]/g, '')
+  }));
+
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      fullName: "",
+      name: "",
       email: "",
       phone: "",
-      message: "",
+      motivation: "",
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    toast({
-      title: "Candidature envoyée !",
-      description: "Nous avons bien reçu votre candidature et nous vous remercions.",
-    });
-    form.reset();
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    // Note: CV upload is not implemented yet. We'll add it in a future step.
+    try {
+        const applicationsCollection = collection(firestore, `jobPostings/${values.jobPostingId}/applications`);
+        await addDoc(applicationsCollection, {
+            ...values,
+            submittedAt: serverTimestamp(),
+            status: 'Nouveau'
+        });
+
+        toast({
+            title: "Candidature envoyée !",
+            description: "Nous avons bien reçu votre candidature et nous vous remercions.",
+        });
+        form.reset();
+    } catch (error) {
+        console.error("Error submitting application: ", error);
+        toast({
+            variant: "destructive",
+            title: "Erreur lors de la soumission",
+            description: "Une erreur est survenue. Veuillez réessayer.",
+        });
+    }
   }
 
   return (
@@ -72,7 +98,7 @@ export default function ApplicationForm({ offers }: ApplicationFormProps) {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
-          name="jobTitle"
+          name="jobPostingId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Poste souhaité</FormLabel>
@@ -83,8 +109,8 @@ export default function ApplicationForm({ offers }: ApplicationFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {offers.map((offer, index) => (
-                    <SelectItem key={index} value={offer.title}>
+                  {offers.map((offer) => (
+                    <SelectItem key={offer.id} value={offer.id}>
                       {offer.title}
                     </SelectItem>
                   ))}
@@ -96,7 +122,7 @@ export default function ApplicationForm({ offers }: ApplicationFormProps) {
         />
         <FormField
           control={form.control}
-          name="fullName"
+          name="name"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Nom complet</FormLabel>
@@ -140,11 +166,11 @@ export default function ApplicationForm({ offers }: ApplicationFormProps) {
           name="cv"
           render={({ field: { onChange, ...props } }) => (
             <FormItem>
-              <FormLabel>Votre CV (PDF, DOCX)</FormLabel>
+              <FormLabel>Votre CV (Bientôt disponible)</FormLabel>
               <FormControl>
                 <Input 
-                  type="file" 
-                  {...props}
+                  type="file"
+                  disabled // Disabled for now
                   onChange={e => onChange(e.target.files)}
                 />
               </FormControl>
@@ -154,7 +180,7 @@ export default function ApplicationForm({ offers }: ApplicationFormProps) {
         />
         <FormField
           control={form.control}
-          name="message"
+          name="motivation"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Message de motivation</FormLabel>

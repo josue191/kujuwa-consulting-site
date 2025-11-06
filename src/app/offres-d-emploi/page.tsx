@@ -29,7 +29,7 @@ export default function JobOffersPage() {
               Sélectionnez un poste et remplissez le formulaire pour envoyer votre candidature.
             </p>
             <Separator className="my-6" />
-            <ApplicationForm offers={jobOffersContent.offers} />
+            <ApplicationForm />
           </div>
         </div>
       </div>
