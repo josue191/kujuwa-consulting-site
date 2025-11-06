@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
 import {
   Briefcase,
   Users,
@@ -8,6 +9,7 @@ import {
   FileText,
   Settings,
   Building,
+  LogOut,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -22,6 +24,9 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import Logo from '@/components/shared/Logo';
+import { useUser, useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { Button } from '@/components/ui/button';
 
 const navItems = [
   { href: '/admin', icon: BarChart, label: 'Tableau de bord' },
@@ -33,6 +38,20 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
 
   const getTitle = () => {
     if (pathname === '/admin') return 'Tableau de bord';
@@ -41,6 +60,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
   
   const title = getTitle();
+
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p>Chargement...</p>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -71,6 +98,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   Paramètres
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={handleSignOut}>
+                  <LogOut />
+                  Déconnexion
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
@@ -80,7 +113,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <SidebarTrigger className="md:hidden" />
               <h1 className="text-2xl font-bold font-headline">{title}</h1>
             </div>
-            <div>{/* User menu can go here */}</div>
+            <div>
+               <p className="text-sm text-muted-foreground">{user.email}</p>
+            </div>
           </header>
           <div className="p-4 lg:p-8 flex-1">
             {children}
