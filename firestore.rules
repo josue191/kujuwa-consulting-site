@@ -97,5 +97,10 @@ service cloud.firestore {
     match /contactFormSubmissions/{contactFormSubmissionId} {
       allow get, list, create, update, delete: if false;
     }
+
+    // This rule allows collection group queries on the 'applications' collection.
+    match /{path=**}/applications/{applicationId} {
+        allow get, list: if isAdmin();
+    }
   }
 }
