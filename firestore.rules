@@ -51,9 +51,7 @@ service cloud.firestore {
 
       match /applications/{applicationId} {
         allow create: if true;
-        allow get, update, delete: if isAdmin();
-        // This rule is separate to specifically allow collection group queries
-        // on 'applications' by admins.
+        allow get, update, delete, list: if isAdmin();
       }
     }
 
