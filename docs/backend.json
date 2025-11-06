@@ -1,0 +1,315 @@
+{
+  "entities": {
+    "ServiceCategory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ServiceCategory",
+      "type": "object",
+      "description": "Represents a category of services offered by Kujuwa Consulting.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the service category."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the service category (e.g., Consultance, Transport)."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the service category."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ]
+    },
+    "Service": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Service",
+      "type": "object",
+      "description": "Represents a specific service offered within a service category.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the service."
+        },
+        "serviceCategoryId": {
+          "type": "string",
+          "description": "Reference to ServiceCategory. (Relationship: ServiceCategory 1:N Service)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the service (e.g., Project Evaluation, Road Transport)."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the service."
+        },
+        "detailsLink": {
+          "type": "string",
+          "description": "Link to a page with detailed information about the service.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "serviceCategoryId",
+        "name",
+        "description"
+      ]
+    },
+    "Project": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Project",
+      "type": "object",
+      "description": "Represents a completed project or ongoing research conducted by Kujuwa Consulting.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the project."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the project."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the project."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL to an image representing the project.",
+          "format": "uri"
+        },
+        "reportUrl": {
+          "type": "string",
+          "description": "URL to a downloadable report about the project (PDF).",
+          "format": "uri"
+        },
+        "year": {
+          "type": "number",
+          "description": "The year the project was completed or conducted."
+        },
+        "domain": {
+          "type": "string",
+          "description": "Domain or category the project falls under (e.g., Construction, Research)."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "imageUrl"
+      ]
+    },
+    "JobPosting": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "JobPosting",
+      "type": "object",
+      "description": "Represents a job posting available at Kujuwa Consulting.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the job posting."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the job position."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the job responsibilities and requirements."
+        },
+        "domain": {
+          "type": "string",
+          "description": "The domain or department the job belongs to."
+        },
+        "city": {
+          "type": "string",
+          "description": "City where the job is located."
+        },
+        "deadline": {
+          "type": "string",
+          "description": "Application deadline date.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "deadline"
+      ]
+    },
+    "Application": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Application",
+      "type": "object",
+      "description": "Represents a job application submitted by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the job application."
+        },
+        "jobPostingId": {
+          "type": "string",
+          "description": "Reference to JobPosting. (Relationship: JobPosting 1:N Application)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Applicant's name."
+        },
+        "email": {
+          "type": "string",
+          "description": "Applicant's email address.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Applicant's phone number."
+        },
+        "cvUrl": {
+          "type": "string",
+          "description": "URL to the applicant's uploaded CV (PDF/DOCX).",
+          "format": "uri"
+        },
+        "motivation": {
+          "type": "string",
+          "description": "Applicant's message of motivation."
+        }
+      },
+      "required": [
+        "id",
+        "jobPostingId",
+        "name",
+        "email"
+      ]
+    },
+    "ContactFormSubmission": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ContactFormSubmission",
+      "type": "object",
+      "description": "Represents a contact form submission from the website.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the contact form submission."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the person submitting the form."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the person submitting the form.",
+          "format": "email"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Subject of the message."
+        },
+        "message": {
+          "type": "string",
+          "description": "The message content."
+        },
+        "submissionDate": {
+          "type": "string",
+          "description": "Date and time the form was submitted.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "subject",
+        "message"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/serviceCategories",
+        "definition": {
+          "entityName": "ServiceCategory",
+          "schema": {
+            "$ref": "#/backend/entities/ServiceCategory"
+          },
+          "description": "Stores the categories of services offered by Kujuwa Consulting."
+        }
+      },
+      {
+        "path": "/serviceCategories/{serviceCategoryId}/services",
+        "definition": {
+          "entityName": "Service",
+          "schema": {
+            "$ref": "#/backend/entities/Service"
+          },
+          "description": "Stores the services offered within a specific service category.",
+          "params": [
+            {
+              "name": "serviceCategoryId",
+              "description": "The ID of the service category to which the service belongs."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/projects",
+        "definition": {
+          "entityName": "Project",
+          "schema": {
+            "$ref": "#/backend/entities/Project"
+          },
+          "description": "Stores information about completed projects and ongoing research."
+        }
+      },
+      {
+        "path": "/jobPostings",
+        "definition": {
+          "entityName": "JobPosting",
+          "schema": {
+            "$ref": "#/backend/entities/JobPosting"
+          },
+          "description": "Stores information about job postings."
+        }
+      },
+      {
+        "path": "/jobPostings/{jobPostingId}/applications",
+        "definition": {
+          "entityName": "Application",
+          "schema": {
+            "$ref": "#/backend/entities/Application"
+          },
+          "description": "Stores job applications submitted for a specific job posting.",
+          "params": [
+            {
+              "name": "jobPostingId",
+              "description": "The ID of the job posting to which the application is submitted."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/contactFormSubmissions",
+        "definition": {
+          "entityName": "ContactFormSubmission",
+          "schema": {
+            "$ref": "#/backend/entities/ContactFormSubmission"
+          },
+          "description": "Stores contact form submissions from the website."
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure is designed to support Kujuwa Consulting's website, focusing on clear data organization, scalability, and secure access.  The structure adheres to Authorization Independence by avoiding hierarchical `get()` calls in security rules.  It also implements Structural Segregation by placing data with different access requirements into separate collections.  The design also uses explicit naming, predictable schemas and radical consistency for better debuggability.\n\n*   `/serviceCategories`: Stores the different service categories offered by Kujuwa Consulting.\n*   `/serviceCategories/{serviceCategoryId}/services`: Subcollection of services belonging to a specific service category.\n*   `/projects`: Contains completed projects and ongoing research conducted by the consulting firm.\n*   `/jobPostings`: Stores job postings available at Kujuwa Consulting.\n*   `/jobPostings/{jobPostingId}/applications`: Subcollection of job applications for a particular job posting.\n*   `/contactFormSubmissions`: Stores contact form submissions from the website.\n\n**Authorization Independence:** No denormalization is explicitly required in this design because there are no implicit hierarchical authorization requirements.  For example, an `Application` is a child of a `JobPosting`, but there is no need to perform any authorization check on the parent document.  The `Application` should be easily queried and managed without authorization rules that rely on a `get()` operation.\n\n**QAPs (Rules are not Filters):** The database is segregated into collections, each with specific access needs.  List operations are secured by ensuring that users can only access data they are authorized to see based on path-based ownership and/or role-based checks.  The separation of data into distinct collections (e.g., public data in `/projects` vs. form submission in `/contactFormSubmissions`) ensures that rules can be written to allow listing without exposing sensitive data."
+  }
+}
