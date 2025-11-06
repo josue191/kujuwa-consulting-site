@@ -26,43 +26,25 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAdmin() {
-      return request.auth != null; // For now, any logged in user is an admin.
+    // WARNING: TEMPORARY DEVELOPMENT RULE
+    // This rule allows any authenticated user to read all data.
+    // It must be replaced with more granular rules before production.
+    match /{document=**} {
+      allow read: if request.auth != null;
+      allow write: if false; // Keep writes restricted for now
     }
 
-    match /serviceCategories/{serviceCategoryId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-    }
-
-    match /serviceCategories/{serviceCategoryId}/services/{serviceId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-    }
-
-    match /projects/{projectId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-    }
-
-    match /jobPostings/{jobPostingId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-
-      match /applications/{applicationId} {
+    // Specific rules will be re-introduced later.
+    // For now, the permissive read rule above takes precedence.
+    
+    match /jobPostings/{jobPostingId}/applications/{applicationId} {
+        // Allow anyone to create an application
         allow create: if true;
-        allow get, update, delete, list: if isAdmin();
-      }
     }
-
-    // This rule specifically allows collection group queries on 'applications' by admins.
-    match /{path=**}/applications/{applicationId} {
-      allow list: if isAdmin();
-    }
-
 
     match /contactFormSubmissions/{contactFormSubmissionId} {
-      allow get, list, create, update, delete: if false;
+      // Allow anyone to create a contact submission
+      allow create: if true;
     }
   }
 }
