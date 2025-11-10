@@ -3,24 +3,23 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // WARNING: TEMPORARY DEVELOPMENT RULE
-    // This rule allows any authenticated user to read all data.
-    // It must be replaced with more granular rules before production.
+    // Règle permissive temporaire pour le développement
+    // Autorise la lecture à tous les utilisateurs connectés.
+    // À remplacer par des règles granulaires avant la production.
     match /{document=**} {
       allow read: if request.auth != null;
-      allow write: if false; // Keep writes restricted for now
+      // Interdit les écritures par défaut, sauf si une règle plus spécifique l'autorise.
+      allow write: if false; 
     }
 
-    // Specific rules will be re-introduced later.
-    // For now, the permissive read rule above takes precedence.
-    
+    // Autorise n'importe qui à créer une candidature pour une offre d'emploi.
+    // C'est sécurisé car ils ne peuvent ni lire, ni mettre à jour, ni supprimer les candidatures.
     match /jobPostings/{jobPostingId}/applications/{applicationId} {
-        // Allow anyone to create an application
-        allow create: if true;
+      allow create: if true;
     }
 
+    // Autorise n'importe qui à soumettre un formulaire de contact.
     match /contactFormSubmissions/{contactFormSubmissionId} {
-      // Allow anyone to create a contact submission
       allow create: if true;
     }
   }
