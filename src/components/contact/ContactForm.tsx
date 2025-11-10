@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useFirestore } from "@/firebase";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères." }),
@@ -26,6 +28,8 @@ const formSchema = z.object({
 
 export default function ContactForm() {
   const { toast } = useToast();
+  const firestore = useFirestore();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -36,13 +40,28 @@ export default function ContactForm() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    toast({
-      title: "Message envoyé !",
-      description: "Nous avons bien reçu votre message et nous vous répondrons bientôt.",
-    });
-    form.reset();
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+        if (!firestore) throw new Error("Firestore is not initialized");
+        const contactFormSubmissionsCollection = collection(firestore, 'contactFormSubmissions');
+        await addDoc(contactFormSubmissionsCollection, {
+            ...values,
+            submissionDate: serverTimestamp(),
+        });
+        
+        toast({
+            title: "Message envoyé !",
+            description: "Nous avons bien reçu votre message et nous vous répondrons bientôt.",
+        });
+        form.reset();
+    } catch(error) {
+        console.error("Error submitting contact form: ", error);
+        toast({
+            variant: "destructive",
+            title: "Erreur lors de l'envoi",
+            description: "Une erreur est survenue. Veuillez réessayer.",
+        });
+    }
   }
 
   return (

@@ -1,27 +1,4 @@
 
-/**
- * @file Firestore Security Rules for Kujuwa Consulting.
- *
- * Core Philosophy:
- * This ruleset provides secure access to Kujuwa Consulting's Firestore database,
- * enforcing strict data segregation and role-based access control.
- * Write access to each collection is restricted to authorized users. Read
- * access varies by collection, with some being publicly readable and others
- * restricted.
- *
- * Data Structure:
- * - /serviceCategories: Stores service categories.
- * - /serviceCategories/{serviceCategoryId}/services: Stores services within a category.
- * - /projects: Stores project information.
- * - /jobPostings: Stores job postings.
- * - /jobPostings/{jobPostingId}/applications: Stores job applications.
- * - /contactFormSubmissions: Stores contact form submissions.
- *
- * Key Security Decisions:
- * - Public read access is enabled for 'serviceCategories', 'services', 'projects' and 'jobPostings' collections.
- * - Write access to all collections is restricted to prevent unauthorized modifications.
- * - Listing of subcollections is generally disallowed to prevent unintended data exposure.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
