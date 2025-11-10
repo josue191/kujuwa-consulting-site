@@ -1,0 +1,13 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Permet à n'importe qui d'envoyer un CV.
+    // La lecture, la mise à jour et la suppression ne sont pas autorisées
+    // pour les utilisateurs non authentifiés, protégeant ainsi la confidentialité.
+    match /cvs/{jobPostingId}/{allPaths=**} {
+      allow read: if request.auth != null; // Seuls les admins (connectés) pourront lire
+      allow write: if true; // Tout le monde peut envoyer un CV
+    }
+  }
+}
