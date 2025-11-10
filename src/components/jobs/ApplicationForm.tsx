@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { useFirestore } from "@/firebase";
 import { jobOffersContent } from "@/lib/data";
+import { uploadFile } from "@/firebase/storage";
 
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -36,20 +38,20 @@ const formSchema = z.object({
   name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères." }),
   email: z.string().email({ message: "Veuillez entrer une adresse email valide." }),
   phone: z.string().min(10, { message: "Le numéro de téléphone doit être valide." }),
-  // We're skipping CV upload for now as it requires file storage setup.
-  // cv: z.any()
-  //   .refine((files) => files?.length == 1, "Le CV est requis.")
-  //   .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `La taille max. est 5MB.`)
-  //   .refine(
-  //     (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
-  //     ".pdf, .doc, .docx seulement."
-  //   ),
+  cv: z.any()
+    .refine((files) => files?.length == 1, "Le CV est requis.")
+    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `La taille max. est 5MB.`)
+    .refine(
+      (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
+      ".pdf, .doc, .docx seulement."
+    ),
   motivation: z.string().min(10, { message: "Le message doit contenir au moins 10 caractères." }),
 });
 
 export default function ApplicationForm() {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const offers = jobOffersContent.offers.map(offer => ({
       ...offer,
@@ -69,11 +71,20 @@ export default function ApplicationForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // Note: CV upload is not implemented yet. We'll add it in a future step.
+    setIsSubmitting(true);
     try {
+        if (!firestore) throw new Error("Firestore not initialized");
+
+        const cvFile = values.cv[0];
+        const cvUrl = await uploadFile(cvFile, `cvs/${values.jobPostingId}`);
+
         const applicationsCollection = collection(firestore, `jobPostings/${values.jobPostingId}/applications`);
         await addDoc(applicationsCollection, {
-            ...values,
+            name: values.name,
+            email: values.email,
+            phone: values.phone,
+            motivation: values.motivation,
+            cvUrl: cvUrl,
             submittedAt: serverTimestamp(),
             status: 'Nouveau'
         });
@@ -88,8 +99,10 @@ export default function ApplicationForm() {
         toast({
             variant: "destructive",
             title: "Erreur lors de la soumission",
-            description: "Une erreur est survenue. Veuillez réessayer.",
+            description: "Une erreur est survenue. Assurez-vous que Storage est activé dans votre console Firebase et réessayez.",
         });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
@@ -164,14 +177,15 @@ export default function ApplicationForm() {
         <FormField
           control={form.control}
           name="cv"
-          render={({ field: { onChange, ...props } }) => (
+          render={({ field: { onChange, value, ...props } }) => (
             <FormItem>
-              <FormLabel>Votre CV (Bientôt disponible)</FormLabel>
+              <FormLabel>Votre CV</FormLabel>
               <FormControl>
                 <Input 
                   type="file"
-                  disabled // Disabled for now
+                  accept=".pdf,.doc,.docx"
                   onChange={e => onChange(e.target.files)}
+                  {...props}
                 />
               </FormControl>
               <FormMessage />
@@ -195,8 +209,8 @@ export default function ApplicationForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? 'Envoi en cours...' : 'Envoyer ma candidature'}
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? 'Envoi en cours...' : 'Envoyer ma candidature'}
         </Button>
       </form>
     </Form>
