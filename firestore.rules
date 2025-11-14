@@ -3,14 +3,19 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Règle spécifique pour lister toutes les candidatures (collection group)
+    // Cette règle DOIT être définie pour que les requêtes collectionGroup fonctionnent.
+    match /{path=**}/applications/{applicationId} {
+      allow read: if request.auth != null;
+    }
 
-    // Règle permissive temporaire pour le développement
-    // Autorise la lecture à tous les utilisateurs connectés.
-    // À remplacer par des règles granulaires avant la production.
+    // Autorise la lecture de toutes les collections publiques pour les utilisateurs connectés
+    // (Ex: jobPostings, projects, serviceCategories, etc.)
+    // Ceci est une règle générale de lecture seule.
     match /{document=**} {
       allow read: if request.auth != null;
-      // Interdit les écritures par défaut, sauf si une règle plus spécifique l'autorise.
-      allow write: if false;
+      allow write: if false; // Interdit les écritures par défaut
     }
     
     // Autorise n'importe qui à soumettre un formulaire de contact.
@@ -21,14 +26,9 @@ service cloud.firestore {
     }
 
     // Autorise n'importe qui à créer une candidature pour une offre d'emploi.
-    // C'est sécurisé car ils ne peuvent ni lire, ni mettre à jour, ni supprimer les candidatures.
+    // Les autres opérations (lecture, mise à jour, suppression) sont gérées par les règles ci-dessus.
     match /jobPostings/{jobPostingId}/applications/{applicationId} {
       allow create: if true;
-    }
-    
-    // Autorise les requêtes de groupe sur la collection 'applications' pour les utilisateurs connectés (admins).
-    match /{path=**}/applications/{applicationId} {
-      allow read, list: if request.auth != null;
     }
   }
 }
