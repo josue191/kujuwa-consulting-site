@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, Eye, Mail } from 'lucide-react';
+import { Loader2, MoreHorizontal, Mail } from 'lucide-react';
 import { useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { useCollection } from '@/firebase/firestore/use-collection';
@@ -64,7 +64,7 @@ export default function MessagesPage() {
               <TableHead>Nom</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -78,7 +78,7 @@ export default function MessagesPage() {
               </TableRow>
             ) : submissions && submissions.length > 0 ? (
               submissions.map((submission) => (
-                <TableRow key={submission.id}>
+                <TableRow key={submission.id} onClick={() => setSelectedSubmission(submission)} className="cursor-pointer">
                   <TableCell className="font-medium">{submission.name}</TableCell>
                   <TableCell>{submission.email}</TableCell>
                   <TableCell>
@@ -87,9 +87,9 @@ export default function MessagesPage() {
                       : 'N/A'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedSubmission(submission)}>
-                      <Eye className="h-4 w-4" />
-                       <span className="sr-only">Voir le message</span>
+                    <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                      <MoreHorizontal className="h-4 w-4" />
+                       <span className="sr-only">Actions</span>
                     </Button>
                   </TableCell>
                 </TableRow>
