@@ -14,8 +14,10 @@ service cloud.firestore {
     }
     
     // Autorise n'importe qui à soumettre un formulaire de contact.
+    // Autorise les utilisateurs connectés (admins) à supprimer les soumissions.
     match /contactFormSubmissions/{contactFormSubmissionId} {
       allow create: if true;
+      allow delete: if request.auth != null;
     }
 
     // Autorise n'importe qui à créer une candidature pour une offre d'emploi.
