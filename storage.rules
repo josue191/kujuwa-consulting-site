@@ -9,5 +9,10 @@ service firebase.storage {
       allow read: if request.auth != null; // Seuls les admins (connectés) pourront lire
       allow write: if true; // Tout le monde peut envoyer un CV
     }
+
+    // Par défaut, refuser l'accès à tous les autres chemins pour plus de sécurité.
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
   }
 }
