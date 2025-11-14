@@ -10,6 +10,7 @@ import {
   Settings,
   Building,
   LogOut,
+  Mail,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -32,6 +33,7 @@ const navItems = [
   { href: '/admin', icon: BarChart, label: 'Tableau de bord' },
   { href: '/admin/contenu', icon: FileText, label: 'Contenu' },
   { href: '/admin/candidatures', icon: Briefcase, label: 'Candidatures' },
+  { href: '/admin/messages', icon: Mail, label: 'Messages' },
   { href: '/admin/services', icon: Building, label: 'Services' },
   { href: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs' },
 ];
@@ -49,7 +51,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [user, isUserLoading, router]);
 
   const handleSignOut = async () => {
-    await signOut(auth);
+    if (auth) {
+      await signOut(auth);
+    }
     router.push('/login');
   };
 
@@ -114,7 +118,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <h1 className="text-2xl font-bold font-headline">{title}</h1>
             </div>
             <div>
-               <p className="text-sm text-muted-foreground">{user.email}</p>
+               {user && <p className="text-sm text-muted-foreground">{user.email}</p>}
             </div>
           </header>
           <div className="p-4 lg:p-8 flex-1">

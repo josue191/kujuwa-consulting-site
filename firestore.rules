@@ -1,5 +1,6 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -9,17 +10,17 @@ service cloud.firestore {
     match /{document=**} {
       allow read: if request.auth != null;
       // Interdit les écritures par défaut, sauf si une règle plus spécifique l'autorise.
-      allow write: if false; 
+      allow write: if false;
+    }
+    
+    // Autorise n'importe qui à soumettre un formulaire de contact.
+    match /contactFormSubmissions/{contactFormSubmissionId} {
+      allow create: if true;
     }
 
     // Autorise n'importe qui à créer une candidature pour une offre d'emploi.
     // C'est sécurisé car ils ne peuvent ni lire, ni mettre à jour, ni supprimer les candidatures.
     match /jobPostings/{jobPostingId}/applications/{applicationId} {
-      allow create: if true;
-    }
-
-    // Autorise n'importe qui à soumettre un formulaire de contact.
-    match /contactFormSubmissions/{contactFormSubmissionId} {
       allow create: if true;
     }
   }
