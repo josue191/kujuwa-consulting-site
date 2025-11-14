@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, Eye } from 'lucide-react';
+import { Loader2, Eye, Mail } from 'lucide-react';
 import { useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { useCollection } from '@/firebase/firestore/use-collection';
@@ -20,7 +20,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 type ContactSubmission = {
   id: string;
@@ -47,7 +56,8 @@ export default function MessagesPage() {
 
   return (
     <div className="w-full">
-      <div className="border rounded-lg">
+      {/* Affichage sur grand écran */}
+      <div className="hidden md:block border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>
@@ -55,7 +65,7 @@ export default function MessagesPage() {
               <TableHead>Email</TableHead>
               <TableHead>Sujet</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -97,23 +107,69 @@ export default function MessagesPage() {
         </Table>
       </div>
 
+      {/* Affichage sur petit écran (mobile) */}
+      <div className="md:hidden space-y-4">
+         {isLoading ? (
+            <div className="flex justify-center items-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+         ) : submissions && submissions.length > 0 ? (
+            submissions.map((submission) => (
+                <Card key={submission.id} onClick={() => setSelectedSubmission(submission)} className="cursor-pointer hover:bg-muted/50">
+                    <CardHeader>
+                        <CardTitle className="text-base">{submission.subject}</CardTitle>
+                        <CardDescription>De : {submission.name}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <p className="text-sm text-muted-foreground truncate">{submission.message}</p>
+                    </CardContent>
+                    <div className="flex justify-between items-center px-6 pb-4 text-xs text-muted-foreground">
+                        <span>{submission.email}</span>
+                        <span>
+                            {submission.submissionDate
+                            ? format(new Date(submission.submissionDate.seconds * 1000), 'dd/MM/yy')
+                            : 'N/A'}
+                        </span>
+                    </div>
+                </Card>
+            ))
+         ) : (
+            <div className="text-center p-8 text-muted-foreground">
+                Aucun message pour le moment.
+            </div>
+         )}
+      </div>
+
+
       {selectedSubmission && (
         <Dialog open={!!selectedSubmission} onOpenChange={() => setSelectedSubmission(null)}>
             <DialogContent className="sm:max-w-[625px]">
                 <DialogHeader>
-                <DialogTitle>{selectedSubmission.subject}</DialogTitle>
-                <DialogDescription>
-                    De : {selectedSubmission.name} ({selectedSubmission.email})
-                </DialogDescription>
+                    <DialogTitle>{selectedSubmission.subject}</DialogTitle>
+                    <DialogDescription>
+                        Message de {selectedSubmission.name}
+                    </DialogDescription>
                 </DialogHeader>
-                <div className="py-4 space-y-4">
-                    <div className="text-sm bg-muted p-4 rounded-md whitespace-pre-wrap break-words">
-                        {selectedSubmission.message}
+                <div className="py-4 space-y-6">
+                    <div className="flex items-center gap-4">
+                        <Badge variant="secondary">Email</Badge>
+                        <a href={`mailto:${selectedSubmission.email}`} className="text-sm text-primary hover:underline">
+                            {selectedSubmission.email}
+                        </a>
                     </div>
-                     <div className="text-xs text-muted-foreground text-right">
-                        Reçu le {format(new Date(selectedSubmission.submissionDate.seconds * 1000), 'dd/MM/yyyy à HH:mm')}
+
+                    <div className="space-y-2">
+                        <h4 className="text-sm font-semibold">Message</h4>
+                        <div className="text-sm bg-muted p-4 rounded-md whitespace-pre-wrap break-words border max-h-[40vh] overflow-y-auto">
+                            {selectedSubmission.message}
+                        </div>
                     </div>
                 </div>
+                <DialogFooter>
+                    <div className="text-xs text-muted-foreground text-right w-full">
+                        Reçu le {format(new Date(selectedSubmission.submissionDate.seconds * 1000), 'dd MMMM yyyy \'à\' HH:mm')}
+                    </div>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
       )}
