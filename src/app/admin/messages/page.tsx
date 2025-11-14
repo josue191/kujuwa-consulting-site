@@ -63,7 +63,6 @@ export default function MessagesPage() {
             <TableRow>
               <TableHead>Nom</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Sujet</TableHead>
               <TableHead>Date</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
@@ -71,7 +70,7 @@ export default function MessagesPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={4} className="text-center">
                   <div className="flex justify-center items-center p-8">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
@@ -82,7 +81,6 @@ export default function MessagesPage() {
                 <TableRow key={submission.id}>
                   <TableCell className="font-medium">{submission.name}</TableCell>
                   <TableCell>{submission.email}</TableCell>
-                  <TableCell>{submission.subject}</TableCell>
                   <TableCell>
                     {submission.submissionDate
                       ? format(new Date(submission.submissionDate.seconds * 1000), 'dd/MM/yyyy HH:mm')
@@ -98,7 +96,7 @@ export default function MessagesPage() {
               ))
             ) : (
                <TableRow>
-                <TableCell colSpan={5} className="text-center h-24">
+                <TableCell colSpan={4} className="text-center h-24">
                     Aucun message pour le moment.
                 </TableCell>
               </TableRow>
@@ -117,8 +115,8 @@ export default function MessagesPage() {
             submissions.map((submission) => (
                 <Card key={submission.id} onClick={() => setSelectedSubmission(submission)} className="cursor-pointer hover:bg-muted/50">
                     <CardHeader>
-                        <CardTitle className="text-base">{submission.subject}</CardTitle>
-                        <CardDescription>De : {submission.name}</CardDescription>
+                        <CardTitle className="text-base">{submission.name}</CardTitle>
+                        <CardDescription>Sujet : {submission.subject}</CardDescription>
                     </CardHeader>
                     <CardContent>
                          <p className="text-sm text-muted-foreground truncate">{submission.message}</p>
