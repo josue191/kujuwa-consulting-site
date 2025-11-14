@@ -8,7 +8,6 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { navLinks } from '@/lib/data';
 import Logo from '@/components/shared/Logo';
 import { cn } from '@/lib/utils';
-import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
 export default function Header() {
   const pathname = usePathname();
@@ -73,7 +72,6 @@ export default function Header() {
           </div>
 
           <div className="flex items-center gap-2">
-            <ThemeToggle />
             <Button asChild>
               <Link href="/contact">Nous contacter</Link>
             </Button>

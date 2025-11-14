@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import MainLayout from '@/components/layout/MainLayout';
-import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
@@ -18,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang="fr" className="light">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -35,15 +34,8 @@ export default function RootLayout({
         className={cn('min-h-screen bg-background font-body antialiased')}
       >
         <FirebaseClientProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <MainLayout>{children}</MainLayout>
-            <Toaster />
-          </ThemeProvider>
+          <MainLayout>{children}</MainLayout>
+          <Toaster />
         </FirebaseClientProvider>
       </body>
     </html>
