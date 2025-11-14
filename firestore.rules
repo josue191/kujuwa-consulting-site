@@ -25,5 +25,10 @@ service cloud.firestore {
     match /jobPostings/{jobPostingId}/applications/{applicationId} {
       allow create: if true;
     }
+    
+    // Autorise les requêtes de groupe sur la collection 'applications' pour les utilisateurs connectés (admins).
+    match /{path=**}/applications/{applicationId} {
+      allow read, list: if request.auth != null;
+    }
   }
 }
