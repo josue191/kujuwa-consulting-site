@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, MoreHorizontal, Mail } from 'lucide-react';
+import { Loader2, MoreHorizontal } from 'lucide-react';
 import { useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { useCollection } from '@/firebase/firestore/use-collection';
@@ -87,7 +87,7 @@ export default function MessagesPage() {
                       : 'N/A'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); /* Future actions here */ }}>
                       <MoreHorizontal className="h-4 w-4" />
                        <span className="sr-only">Actions</span>
                     </Button>
@@ -115,8 +115,8 @@ export default function MessagesPage() {
             submissions.map((submission) => (
                 <Card key={submission.id} onClick={() => setSelectedSubmission(submission)} className="cursor-pointer hover:bg-muted/50">
                     <CardHeader>
-                        <CardTitle className="text-base">{submission.name}</CardTitle>
-                        <CardDescription>Sujet : {submission.subject}</CardDescription>
+                        <CardTitle className="text-base break-words">{submission.subject}</CardTitle>
+                        <CardDescription>De : {submission.name}</CardDescription>
                     </CardHeader>
                     <CardContent>
                          <p className="text-sm text-muted-foreground truncate">{submission.message}</p>
@@ -143,7 +143,7 @@ export default function MessagesPage() {
         <Dialog open={!!selectedSubmission} onOpenChange={() => setSelectedSubmission(null)}>
             <DialogContent className="sm:max-w-[625px]">
                 <DialogHeader>
-                    <DialogTitle>{selectedSubmission.subject}</DialogTitle>
+                    <DialogTitle className="break-words">{selectedSubmission.subject}</DialogTitle>
                     <DialogDescription>
                         Message de {selectedSubmission.name}
                     </DialogDescription>
@@ -151,7 +151,7 @@ export default function MessagesPage() {
                 <div className="py-4 space-y-6">
                     <div className="flex items-center gap-4">
                         <Badge variant="secondary">Email</Badge>
-                        <a href={`mailto:${selectedSubmission.email}`} className="text-sm text-primary hover:underline">
+                        <a href={`mailto:${selectedSubmission.email}`} className="text-sm text-primary hover:underline break-all">
                             {selectedSubmission.email}
                         </a>
                     </div>
