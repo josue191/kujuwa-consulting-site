@@ -1,46 +1,12 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Règle spécifique pour lister toutes les candidatures (collection group).
-    // Cette règle DOIT être définie explicitement pour que les requêtes collectionGroup fonctionnent.
-    match /{path=**}/applications/{applicationId} {
-      allow read: if request.auth != null;
-    }
-
-    // Autorise n'importe qui à soumettre un formulaire de contact.
-    // Autorise les utilisateurs connectés (admins) à lire et supprimer les soumissions.
-    match /contactFormSubmissions/{contactFormSubmissionId} {
-      allow read, delete: if request.auth != null;
-      allow create: if true;
-    }
-
-    // Autorise n'importe qui à créer (postuler) à une offre d'emploi.
-    // La lecture est gérée par la règle collectionGroup ci-dessus.
-    // La suppression/modification n'est pas autorisée par défaut.
-    match /jobPostings/{jobPostingId}/applications/{applicationId} {
-        allow create: if true;
-    }
-    
-    // Règle générale pour les collections de premier niveau (projets, offres d'emploi, etc.)
-    // Autorise la lecture publique (si nécessaire) ou restreinte aux admins.
-    // L'écriture est contrôlée plus spécifiquement.
-    match /jobPostings/{jobPostingId} {
-      allow read: if true;
-    }
-    
-    match /serviceCategories/{serviceCategoryId} {
-      allow read: if true;
-    }
-    
-    match /serviceCategories/{serviceCategoryId}/services/{serviceId} {
-      allow read: if true;
-    }
-
-    match /projects/{projectId} {
-      allow read: if true;
+    // Autoriser la lecture et l'écriture pour n'importe quel document
+    // si et seulement si l'utilisateur est authentifié.
+    // C'est une règle simple et sécurisée pour une interface d'administration.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
