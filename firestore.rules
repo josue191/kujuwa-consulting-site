@@ -4,6 +4,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Règle spécifique pour lister toutes les candidatures (collection group).
+    // Cette règle DOIT être définie explicitement pour que les requêtes collectionGroup fonctionnent.
+    match /{path=**}/applications/{application} {
+      allow read: if request.auth != null;
+    }
+
     // Autorise n'importe qui à soumettre un formulaire de contact.
     // Autorise les utilisateurs connectés (admins) à lire et supprimer les soumissions.
     match /contactFormSubmissions/{contactFormSubmissionId} {
@@ -12,21 +18,26 @@ service cloud.firestore {
     }
 
     // Autorise n'importe qui à créer (postuler) à une offre d'emploi.
+    // La lecture est gérée par la règle collectionGroup ci-dessus.
     match /jobPostings/{jobPostingId}/applications/{applicationId} {
       allow create: if true;
     }
-
-    // Règle spécifique pour lister toutes les candidatures (collection group).
-    // Cette règle DOIT être définie explicitement pour que les requêtes collectionGroup fonctionnent.
-    match /{path=**}/applications/{application} {
+    
+    // Règle générale pour les autres collections de premier niveau
+    // Les admins peuvent lire. Les écritures sont interdites par défaut.
+    match /jobPostings/{jobPostingId} {
       allow read: if request.auth != null;
+      allow write: if false; // Empêche l'écriture directe ici, mais pas dans les sous-collections
     }
     
-    // Règle générale pour les autres collections
-    // Les admins peuvent tout lire. Les écritures sont interdites par défaut.
-    match /{document=**} {
+    match /serviceCategories/{serviceCategoryId} {
       allow read: if request.auth != null;
-      allow write: if false; 
+      allow write: if false;
+    }
+
+    match /projects/{projectId} {
+      allow read: if request.auth != null;
+      allow write: if false;
     }
   }
 }
