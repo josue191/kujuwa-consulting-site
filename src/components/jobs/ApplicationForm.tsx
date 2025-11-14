@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, doc, setDoc } from "firebase/firestore";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -45,8 +45,7 @@ export default function ApplicationForm() {
 
   const offers = jobOffersContent.offers.map(offer => ({
       ...offer,
-      // Create a simple ID from the title
-      id: offer.title.toLowerCase().replace(/ /g, '-').replace(/[^a-z0-9-]/g, '')
+      id: offer.title.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-').replace(/[^a-z0-9-]/g, '')
   }));
 
 
@@ -66,6 +65,18 @@ export default function ApplicationForm() {
     try {
         if (!firestore) throw new Error("Firestore not initialized");
 
+        // Ensure the parent jobPosting document exists before adding a subcollection.
+        // This is good practice and helps avoid certain Firestore query issues.
+        const jobPostingRef = doc(firestore, "jobPostings", values.jobPostingId);
+        const offerData = offers.find(o => o.id === values.jobPostingId);
+        if (offerData) {
+            await setDoc(jobPostingRef, {
+                title: offerData.title,
+                domain: offerData.domain,
+                location: offerData.location,
+            }, { merge: true });
+        }
+        
         const applicationsCollection = collection(firestore, `jobPostings/${values.jobPostingId}/applications`);
         await addDoc(applicationsCollection, {
             name: values.name,
@@ -74,7 +85,8 @@ export default function ApplicationForm() {
             motivation: values.motivation,
             cvUrl: values.cvUrl,
             submittedAt: serverTimestamp(),
-            status: 'Nouveau'
+            status: 'Nouveau',
+            jobPostingId: values.jobPostingId
         });
 
         toast({

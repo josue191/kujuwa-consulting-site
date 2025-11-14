@@ -3,32 +3,30 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Règle spécifique pour lister toutes les candidatures (collection group)
-    // Cette règle DOIT être définie pour que les requêtes collectionGroup fonctionnent.
-    match /{path=**}/applications/{applicationId} {
-      allow read: if request.auth != null;
-    }
 
-    // Autorise la lecture de toutes les collections publiques pour les utilisateurs connectés
-    // (Ex: jobPostings, projects, serviceCategories, etc.)
-    // Ceci est une règle générale de lecture seule.
-    match /{document=**} {
-      allow read: if request.auth != null;
-      allow write: if false; // Interdit les écritures par défaut
-    }
-    
     // Autorise n'importe qui à soumettre un formulaire de contact.
-    // Autorise les utilisateurs connectés (admins) à supprimer les soumissions.
+    // Autorise les utilisateurs connectés (admins) à lire et supprimer les soumissions.
     match /contactFormSubmissions/{contactFormSubmissionId} {
+      allow read, delete: if request.auth != null;
       allow create: if true;
-      allow delete: if request.auth != null;
     }
 
-    // Autorise n'importe qui à créer une candidature pour une offre d'emploi.
-    // Les autres opérations (lecture, mise à jour, suppression) sont gérées par les règles ci-dessus.
+    // Autorise n'importe qui à créer (postuler) à une offre d'emploi.
     match /jobPostings/{jobPostingId}/applications/{applicationId} {
       allow create: if true;
+    }
+
+    // Règle spécifique pour lister toutes les candidatures (collection group).
+    // Cette règle DOIT être définie explicitement pour que les requêtes collectionGroup fonctionnent.
+    match /{path=**}/applications/{application} {
+      allow read: if request.auth != null;
+    }
+    
+    // Règle générale pour les autres collections
+    // Les admins peuvent tout lire. Les écritures sont interdites par défaut.
+    match /{document=**} {
+      allow read: if request.auth != null;
+      allow write: if false; 
     }
   }
 }
