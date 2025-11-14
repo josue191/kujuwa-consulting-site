@@ -47,6 +47,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { errorEmitter, FirestorePermissionError } from '@/firebase';
 
 type ContactSubmission = {
   id: string;
@@ -73,26 +74,27 @@ export default function MessagesPage() {
   
   const { data: submissions, isLoading } = useCollection<ContactSubmission>(submissionsQuery);
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!submissionToDelete || !firestore) return;
 
-    try {
-      const docRef = doc(firestore, 'contactFormSubmissions', submissionToDelete.id);
-      await deleteDoc(docRef);
-      toast({
-        title: 'Message supprimé',
-        description: 'Le message a été supprimé avec succès.',
-      });
-    } catch (error) {
-      console.error('Error deleting document: ', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: 'Une erreur est survenue lors de la suppression du message.',
-      });
-    } finally {
-      setSubmissionToDelete(null);
-    }
+    const docRef = doc(firestore, 'contactFormSubmissions', submissionToDelete.id);
+    
+    deleteDoc(docRef)
+        .then(() => {
+            toast({
+                title: 'Message supprimé',
+                description: 'Le message a été supprimé avec succès.',
+            });
+        })
+        .catch(() => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'delete',
+            }));
+        })
+        .finally(() => {
+            setSubmissionToDelete(null);
+        });
   };
 
 
