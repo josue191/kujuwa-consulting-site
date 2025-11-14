@@ -27,24 +27,14 @@ import {
 } from "@/components/ui/select";
 import { useFirestore } from "@/firebase";
 import { jobOffersContent } from "@/lib/data";
-import { uploadFile } from "@/firebase/storage";
 
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_FILE_TYPES = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
 
 const formSchema = z.object({
   jobPostingId: z.string({ required_error: "Veuillez sélectionner un poste." }),
   name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères." }),
   email: z.string().email({ message: "Veuillez entrer une adresse email valide." }),
   phone: z.string().min(10, { message: "Le numéro de téléphone doit être valide." }),
-  cv: z.any()
-    .refine((files) => files?.length == 1, "Le CV est requis.")
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `La taille max. est 5MB.`)
-    .refine(
-      (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
-      ".pdf, .doc, .docx seulement."
-    ),
+  cvUrl: z.string().url({ message: "Veuillez entrer un lien valide (URL)." }),
   motivation: z.string().min(10, { message: "Le message doit contenir au moins 10 caractères." }),
 });
 
@@ -66,6 +56,7 @@ export default function ApplicationForm() {
       name: "",
       email: "",
       phone: "",
+      cvUrl: "",
       motivation: "",
     },
   });
@@ -75,16 +66,13 @@ export default function ApplicationForm() {
     try {
         if (!firestore) throw new Error("Firestore not initialized");
 
-        const cvFile = values.cv[0];
-        const cvUrl = await uploadFile(cvFile, `cvs/${values.jobPostingId}`);
-
         const applicationsCollection = collection(firestore, `jobPostings/${values.jobPostingId}/applications`);
         await addDoc(applicationsCollection, {
             name: values.name,
             email: values.email,
             phone: values.phone,
             motivation: values.motivation,
-            cvUrl: cvUrl,
+            cvUrl: values.cvUrl,
             submittedAt: serverTimestamp(),
             status: 'Nouveau'
         });
@@ -99,7 +87,7 @@ export default function ApplicationForm() {
         toast({
             variant: "destructive",
             title: "Erreur lors de la soumission",
-            description: "Une erreur est survenue. Assurez-vous que Storage est activé dans votre console Firebase et réessayez.",
+            description: "Une erreur est survenue. Veuillez réessayer.",
         });
     } finally {
         setIsSubmitting(false);
@@ -176,16 +164,14 @@ export default function ApplicationForm() {
         </div>
         <FormField
           control={form.control}
-          name="cv"
-          render={({ field: { onChange, value, ...props } }) => (
+          name="cvUrl"
+          render={({ field }) => (
             <FormItem>
-              <FormLabel>Votre CV</FormLabel>
+              <FormLabel>Lien vers votre CV</FormLabel>
               <FormControl>
                 <Input 
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={e => onChange(e.target.files)}
-                  {...props}
+                  placeholder="https://www.dropbox.com/s/..."
+                  {...field}
                 />
               </FormControl>
               <FormMessage />
