@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Table,
@@ -8,54 +9,202 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, Loader2, MapPin } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Loader2, MapPin, Trash2, Edit } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 type JobPosting = {
   id: string;
   title: string;
   domain: string;
   location: string;
+  description: string;
   created_at: string;
 };
+
+const formSchema = z.object({
+  title: z.string().min(5, { message: 'Le titre doit contenir au moins 5 caractères.' }),
+  domain: z.string().min(2, { message: 'Le domaine est requis.' }),
+  location: z.string().min(2, { message: 'Le lieu est requis.' }),
+  description: z.string().min(10, { message: 'La description doit contenir au moins 10 caractères.' }),
+});
 
 export default function OffresPage() {
   const [jobPostings, setJobPostings] = useState<JobPosting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingJob, setEditingJob] = useState<JobPosting | null>(null);
+  const [jobToDelete, setJobToDelete] = useState<JobPosting | null>(null);
+
   const supabase = createClient();
   const { toast } = useToast();
 
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: '',
+      domain: '',
+      location: '',
+      description: '',
+    },
+  });
+
+  const fetchJobPostings = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('jobPostings')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching job postings:', error.message);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur de chargement',
+        description: `Une erreur est survenue: ${error.message}`,
+      });
+    } else {
+      setJobPostings(data || []);
+    }
+    setIsLoading(false);
+  };
+
   useEffect(() => {
-    const fetchJobPostings = async () => {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('jobPostings')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching job postings:', error.message);
-        toast({
-          variant: 'destructive',
-          title: 'Erreur de chargement',
-          description: `Une erreur est survenue: ${error.message}`,
-        });
-      } else {
-        setJobPostings(data || []);
-      }
-      setIsLoading(false);
-    };
-
     fetchJobPostings();
   }, [supabase, toast]);
+
+  const handleEdit = (job: JobPosting) => {
+    setEditingJob(job);
+    form.reset({
+        title: job.title,
+        domain: job.domain,
+        location: job.location,
+        description: job.description
+    });
+    setIsFormOpen(true);
+  };
+
+  const handleAddNew = () => {
+    setEditingJob(null);
+    form.reset({
+        title: '',
+        domain: '',
+        location: '',
+        description: ''
+    });
+    setIsFormOpen(true);
+  };
+  
+  const generateSlug = (title: string) => {
+    return title
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    let error;
+    if (editingJob) {
+      // Update
+      const { error: updateError } = await supabase
+        .from('jobPostings')
+        .update({ ...values })
+        .match({ id: editingJob.id });
+      error = updateError;
+    } else {
+      // Create
+      const newId = generateSlug(values.title);
+      const { error: insertError } = await supabase
+        .from('jobPostings')
+        .insert([{ ...values, id: newId }]);
+      error = insertError;
+    }
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: "Erreur lors de l'enregistrement",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: `Offre ${editingJob ? 'mise à jour' : 'créée'}`,
+        description: `L'offre d'emploi a été enregistrée avec succès.`,
+      });
+      setIsFormOpen(false);
+      fetchJobPostings();
+    }
+  }
+  
+  const handleDelete = async () => {
+    if (!jobToDelete) return;
+
+    const { error } = await supabase
+      .from('jobPostings')
+      .delete()
+      .match({ id: jobToDelete.id });
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur de suppression',
+        description: "L'offre n'a pas pu être supprimée.",
+      });
+    } else {
+      toast({
+        title: 'Offre supprimée',
+        description: "L'offre a été supprimée avec succès.",
+      });
+      setJobPostings(jobPostings.filter(job => job.id !== jobToDelete.id));
+    }
+    setJobToDelete(null);
+  };
 
   return (
     <div className="w-full">
       <div className="flex justify-end mb-4">
-        <Button>
+        <Button onClick={handleAddNew}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Ajouter une offre
         </Button>
@@ -97,10 +246,27 @@ export default function OffresPage() {
                       : 'N/A'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Ouvrir le menu</span>
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Ouvrir le menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => handleEdit(job)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Modifier
+                        </DropdownMenuItem>
+                         <DropdownMenuItem
+                          className="text-red-500"
+                          onSelect={() => setJobToDelete(job)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
@@ -114,6 +280,104 @@ export default function OffresPage() {
           </TableBody>
         </Table>
       </div>
+
+       {isFormOpen && (
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <DialogContent className="sm:max-w-[625px]">
+                <DialogHeader>
+                    <DialogTitle className="break-words">{editingJob ? "Modifier l'offre" : "Créer une nouvelle offre"}</DialogTitle>
+                    <DialogDescription>
+                        {editingJob ? "Mettez à jour les détails de l'offre." : "Remplissez les informations ci-dessous."}
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                        <FormField
+                            control={form.control}
+                            name="title"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Titre du poste</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Ex: Développeur Web" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="domain"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Domaine</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Ex: Informatique" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="location"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Lieu</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Ex: Kinshasa" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        <FormField
+                            control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Description</FormLabel>
+                                <FormControl>
+                                    <Textarea placeholder="Description détaillée du poste..." className="min-h-[120px]" {...field}/>
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annuler</Button>
+                            <Button type="submit" disabled={form.formState.isSubmitting}>
+                                {form.formState.isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+      )}
+
+      {jobToDelete && (
+        <AlertDialog open={!!jobToDelete} onOpenChange={() => setJobToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cette offre ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est irréversible. Elle supprimera définitivement l'offre d'emploi.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }
+
+    
