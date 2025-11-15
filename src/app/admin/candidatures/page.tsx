@@ -11,48 +11,53 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
 
 type Application = {
   id: string;
   name: string;
-  job_posting_id: string;
+  jobPostings: { title: string } | null;
   created_at: string;
   status: string;
-  jobPostings: { title: string } | null;
-}
+};
+
+const mockApplications: Application[] = [
+  {
+    id: '1',
+    name: 'Alice Dupont',
+    jobPostings: { title: 'Chef de Projet en Construction' },
+    created_at: new Date().toISOString(),
+    status: 'Nouveau',
+  },
+  {
+    id: '2',
+    name: 'Bob Martin',
+    jobPostings: { title: 'Spécialiste en Suivi & Évaluation' },
+    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    status: 'En cours',
+  },
+  {
+    id: '3',
+    name: 'Claire Leroy',
+    jobPostings: { title: 'Gestionnaire de Flotte de Transport' },
+    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    status: 'Archivé',
+  },
+];
 
 export default function CandidaturesPage() {
-    const supabase = createClient();
     const [applications, setApplications] = useState<Application[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const fetchApplications = async () => {
-            setIsLoading(true);
-            const { data, error } = await supabase
-                .from('applications')
-                .select(`
-                    id,
-                    name,
-                    job_posting_id,
-                    created_at,
-                    status,
-                    jobPostings ( title )
-                `)
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error('Error fetching applications:', error);
-            } else {
-                setApplications(data as Application[]);
-            }
+        // Simulating data fetching
+        const timer = setTimeout(() => {
+            setApplications(mockApplications);
             setIsLoading(false);
-        };
+        }, 1000);
 
-        fetchApplications();
-    }, [supabase]);
+        return () => clearTimeout(timer);
+    }, []);
 
 
   const getBadgeVariant = (status: string) => {
@@ -94,7 +99,7 @@ export default function CandidaturesPage() {
               applications.map((application) => (
                 <TableRow key={application.id}>
                   <TableCell className="font-medium">{application.name}</TableCell>
-                  <TableCell>{application.jobPostings?.title || application.job_posting_id}</TableCell>
+                  <TableCell>{application.jobPostings?.title || 'N/A'}</TableCell>
                   <TableCell>
                     {application.created_at
                       ? format(new Date(application.created_at), 'dd/MM/yyyy')

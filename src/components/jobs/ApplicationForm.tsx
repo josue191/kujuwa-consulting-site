@@ -24,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createClient } from "@/lib/supabase/client";
 import { jobOffersContent } from "@/lib/data";
 
 
@@ -39,7 +38,6 @@ const formSchema = z.object({
 
 export default function ApplicationForm() {
   const { toast } = useToast();
-  const supabase = createClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const offers = jobOffersContent.offers.map(offer => ({
@@ -61,46 +59,17 @@ export default function ApplicationForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    try {
-        const offerData = offers.find(o => o.id === values.jobPostingId);
-        
-        // Ensure the job posting exists, or create it
-        if (offerData) {
-            await supabase.from('jobPostings').upsert({
-                id: offerData.id,
-                title: offerData.title,
-                domain: offerData.domain,
-                location: offerData.location,
-            }, { onConflict: 'id' });
-        }
-
-        const { error } = await supabase.from('applications').insert({
-            name: values.name,
-            email: values.email,
-            phone: values.phone,
-            motivation: values.motivation,
-            cv_url: values.cvUrl,
-            status: 'Nouveau',
-            job_posting_id: values.jobPostingId
-        });
-
-        if (error) throw error;
-
+    // Simulating form submission
+    console.log("Application submitted (simulation):", values);
+    
+    setTimeout(() => {
         toast({
-            title: "Candidature envoyée !",
+            title: "Candidature envoyée (Simulation) !",
             description: "Nous avons bien reçu votre candidature et nous vous remercions.",
         });
         form.reset();
-    } catch (error: any) {
-        console.error("Error submitting application: ", error);
-        toast({
-            variant: "destructive",
-            title: "Erreur lors de la soumission",
-            description: error.message || "Une erreur est survenue. Veuillez réessayer.",
-        });
-    } finally {
         setIsSubmitting(false);
-    }
+    }, 1000);
   }
 
   return (

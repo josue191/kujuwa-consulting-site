@@ -11,7 +11,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2, MoreHorizontal, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { createClient } from '@/lib/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -55,8 +54,26 @@ type ContactSubmission = {
   created_at: string;
 }
 
+const mockSubmissions: ContactSubmission[] = [
+    {
+        id: '1',
+        name: 'John Doe',
+        email: 'john@example.com',
+        subject: 'Question sur vos services',
+        message: 'Bonjour, je souhaiterais avoir plus d\'informations sur votre offre de consultance.',
+        created_at: new Date().toISOString(),
+    },
+    {
+        id: '2',
+        name: 'Jane Smith',
+        email: 'jane@example.com',
+        subject: 'Demande de partenariat',
+        message: 'Nous sommes intéressés par un partenariat stratégique. Pouvons-nous en discuter ?',
+        created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+];
+
 export default function MessagesPage() {
-  const supabase = createClient();
   const { toast } = useToast();
   const [submissions, setSubmissions] = useState<ContactSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,42 +81,22 @@ export default function MessagesPage() {
   const [submissionToDelete, setSubmissionToDelete] = useState<ContactSubmission | null>(null);
 
   useEffect(() => {
-    const fetchSubmissions = async () => {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('contactFormSubmissions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching messages:', error);
-      } else {
-        setSubmissions(data as ContactSubmission[]);
-      }
-      setIsLoading(false);
-    };
-    fetchSubmissions();
-  }, [supabase]);
+    // Simulating data fetching
+    const timer = setTimeout(() => {
+        setSubmissions(mockSubmissions);
+        setIsLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleDelete = async () => {
     if (!submissionToDelete) return;
     
-    const { error } = await supabase.from('contactFormSubmissions').delete().match({ id: submissionToDelete.id });
-    
-    if (error) {
-        toast({
-            variant: 'destructive',
-            title: 'Erreur',
-            description: 'La suppression du message a échoué.',
-        });
-        console.error("Error deleting submission:", error);
-    } else {
-        toast({
-            title: 'Message supprimé',
-            description: 'Le message a été supprimé avec succès.',
-        });
-        setSubmissions(submissions.filter(s => s.id !== submissionToDelete.id));
-    }
+    toast({
+        title: 'Simulation de suppression',
+        description: 'Le message serait supprimé dans une application réelle.',
+    });
+    setSubmissions(submissions.filter(s => s.id !== submissionToDelete.id));
     setSubmissionToDelete(null);
   };
 
@@ -241,7 +238,7 @@ export default function MessagesPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer ce message ?</AlertDialogTitle>
               <AlertDialogDescription>
-                Cette action est irréversible et supprimera définitivement le message de la base de données.
+                Cette action est irréversible. Ceci est une simulation.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

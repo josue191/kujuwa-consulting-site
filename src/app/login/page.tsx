@@ -17,7 +17,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { createClient } from '@/lib/supabase/client';
 import Logo from '@/components/shared/Logo';
 
 const formSchema = z.object({
@@ -28,7 +27,6 @@ const formSchema = z.object({
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -41,24 +39,24 @@ export default function LoginPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
-    });
 
-    if (error) {
-      console.error('Failed to sign in', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erreur de connexion',
-        description: 'Email ou mot de passe incorrect.',
-      });
-    } else {
-      // On success, redirect to the admin dashboard.
-      // The layout will handle the auth state.
-      router.push('/admin');
-    }
-    setIsLoading(false);
+    // Simulating login
+    setTimeout(() => {
+        if (values.email === "admin@example.com" && values.password === "password") {
+            toast({
+                title: 'Connexion réussie',
+                description: 'Redirection vers le tableau de bord.',
+            });
+            router.push('/admin');
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Erreur de connexion',
+                description: 'Email ou mot de passe incorrect.',
+            });
+        }
+        setIsLoading(false);
+    }, 1000);
   }
 
   return (
@@ -80,7 +78,7 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="admin@kujuwaconsulting.com" {...field} />
+                      <Input placeholder="admin@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -93,7 +91,7 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Mot de passe</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="********" {...field} />
+                      <Input type="password" placeholder="password" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

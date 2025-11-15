@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import React from 'react';
 import {
   Briefcase,
   Users,
@@ -25,8 +25,6 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import Logo from '@/components/shared/Logo';
-import { createClient } from '@/lib/supabase/client';
-import type { User } from '@supabase/supabase-js';
 
 const navItems = [
   { href: '/admin', icon: BarChart, label: 'Tableau de bord' },
@@ -39,46 +37,6 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const supabase = createClient();
-  const [user, setUser] = useState<User | null>(null);
-  const [isUserLoading, setIsUserLoading] = useState(true);
-
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setIsUserLoading(false);
-    };
-
-    getUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      
-      if (event === 'SIGNED_IN' && pathname !== '/admin') {
-         router.push('/admin');
-      }
-      if (event === 'SIGNED_OUT') {
-        router.push('/login');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [router, supabase.auth, pathname]);
-  
-  useEffect(() => {
-    // If loading is finished and there's no user, redirect to login page.
-    if (!isUserLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, isUserLoading, router]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
 
   const getTitle = () => {
     if (pathname === '/admin') return 'Tableau de bord';
@@ -87,14 +45,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
   
   const title = getTitle();
-
-  if (isUserLoading || !user) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <p>Chargement...</p>
-      </div>
-    );
-  }
 
   return (
     <SidebarProvider>
@@ -126,9 +76,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleSignOut}>
-                  <LogOut />
-                  Déconnexion
+                 <SidebarMenuButton>
+                    <Link href="/" className='flex items-center gap-2'>
+                        <LogOut />
+                        Quitter l'admin
+                    </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -141,7 +93,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <h1 className="text-2xl font-bold font-headline">{title}</h1>
             </div>
             <div>
-               {user && <p className="text-sm text-muted-foreground">{user.email}</p>}
+               <p className="text-sm text-muted-foreground">admin@example.com</p>
             </div>
           </header>
           <div className="p-4 lg:p-8 flex-1">
