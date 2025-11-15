@@ -53,11 +53,13 @@ export default function LoginPage() {
         title: 'Erreur de connexion',
         description: 'Email ou mot de passe incorrect.',
       });
+      setIsLoading(false);
     } else {
-      router.push('/admin');
+      // On successful login, refresh the page to trigger the layout's auth check.
+      // The layout will handle redirecting to the correct admin page.
       router.refresh();
     }
-    setIsLoading(false);
+    // Don't set isLoading to false here on success, as the page will be refreshing.
   }
 
   return (
