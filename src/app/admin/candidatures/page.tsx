@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Loader2, Download, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Loader2, Download, Trash2, Mail, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -30,11 +30,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 type Application = {
   id: string;
   name: string;
+  email: string;
+  phone: string;
   job_posting_id: string;
+  motivation: string;
   created_at: string;
   status: string;
   cv_url: string;
@@ -44,6 +55,7 @@ export default function CandidaturesPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [applicationToDelete, setApplicationToDelete] = useState<Application | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const supabase = createClient();
   const { toast } = useToast();
 
@@ -90,7 +102,6 @@ export default function CandidaturesPage() {
                 title: 'Erreur de suppression du CV',
                 description: `Le fichier CV n'a pas pu être supprimé : ${storageError.message}`,
             });
-            // We can decide to stop here or continue to delete the application record
         }
     }
 
@@ -116,7 +127,6 @@ export default function CandidaturesPage() {
     setApplicationToDelete(null);
   };
 
-
   const getBadgeVariant = (status: string) => {
     switch (status) {
       case 'Nouveau':
@@ -137,7 +147,7 @@ export default function CandidaturesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nom du candidat</TableHead>
-              <TableHead>Poste (ID)</TableHead>
+              <TableHead>Poste</TableHead>
               <TableHead>CV</TableHead>
               <TableHead>Date de soumission</TableHead>
               <TableHead>Statut</TableHead>
@@ -155,10 +165,10 @@ export default function CandidaturesPage() {
               </TableRow>
             ) : applications && applications.length > 0 ? (
               applications.map((application) => (
-                <TableRow key={application.id}>
+                <TableRow key={application.id} onClick={() => setSelectedApplication(application)} className="cursor-pointer">
                   <TableCell className="font-medium">{application.name}</TableCell>
                   <TableCell>{application.job_posting_id}</TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <Button variant="ghost" size="icon" asChild>
                       <a href={application.cv_url} target="_blank" rel="noopener noreferrer" aria-label="Télécharger le CV">
                         <Download className="h-4 w-4" />
@@ -175,7 +185,7 @@ export default function CandidaturesPage() {
                       {application.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -207,7 +217,54 @@ export default function CandidaturesPage() {
         </Table>
       </div>
 
-       {applicationToDelete && (
+       {selectedApplication && (
+        <Dialog open={!!selectedApplication} onOpenChange={() => setSelectedApplication(null)}>
+            <DialogContent className="sm:max-w-[625px]">
+                <DialogHeader>
+                    <DialogTitle className="break-words">Candidature pour: {selectedApplication.job_posting_id}</DialogTitle>
+                    <DialogDescription>
+                        De {selectedApplication.name}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+                        <div className="flex items-center gap-2">
+                           <Mail className="h-4 w-4 text-muted-foreground" />
+                            <a href={`mailto:${selectedApplication.email}`} className="text-sm text-primary hover:underline break-all">
+                                {selectedApplication.email}
+                            </a>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            <a href={`tel:${selectedApplication.phone}`} className="text-sm text-primary hover:underline break-all">
+                                {selectedApplication.phone}
+                            </a>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Download className="h-4 w-4 text-muted-foreground" />
+                             <a href={selectedApplication.cv_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
+                                Télécharger le CV
+                             </a>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <h4 className="text-sm font-semibold">Lettre de motivation</h4>
+                        <div className="text-sm bg-muted p-4 rounded-md whitespace-pre-wrap break-words border max-h-[30vh] overflow-y-auto">
+                            {selectedApplication.motivation}
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <div className="text-xs text-muted-foreground text-right w-full">
+                        Reçu le {format(new Date(selectedApplication.created_at), "dd MMMM yyyy 'à' HH:mm")}
+                    </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+      )}
+
+      {applicationToDelete && (
         <AlertDialog open={!!applicationToDelete} onOpenChange={() => setApplicationToDelete(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
