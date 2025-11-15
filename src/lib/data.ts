@@ -339,16 +339,19 @@ export const jobOffersContent = {
     'Rejoignez une équipe dynamique et contribuez à des projets impactants. Découvrez nos opportunités de carrière.',
   offers: [
     {
+      id: 'chef-de-projet-en-construction',
       title: 'Chef de Projet en Construction',
       location: 'Kinshasa',
       domain: 'Construction',
     },
     {
+      id: 'specialiste-en-suivi-evaluation',
       title: 'Spécialiste en Suivi & Évaluation',
       location: 'Goma',
       domain: 'Consultance',
     },
     {
+      id: 'gestionnaire-de-flotte-de-transport',
       title: 'Gestionnaire de Flotte de Transport',
       location: 'Kinshasa',
       domain: 'Transport',

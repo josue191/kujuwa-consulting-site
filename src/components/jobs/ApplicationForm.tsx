@@ -49,12 +49,7 @@ export default function ApplicationForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const supabase = createClient();
-
-  const offers = jobOffersContent.offers.map(offer => ({
-      ...offer,
-      id: offer.title.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-').replace(/[^a-z0-9-]/g, '')
-  }));
-
+  const offers = jobOffersContent.offers;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
