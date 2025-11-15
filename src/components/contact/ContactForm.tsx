@@ -16,6 +16,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { createClient } from "@/lib/supabase/client";
+import { useState } from "react";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères." }),
@@ -26,6 +28,8 @@ const formSchema = z.object({
 
 export default function ContactForm() {
   const { toast } = useToast();
+  const supabase = createClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -38,13 +42,23 @@ export default function ContactForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // Simulating form submission
-    console.log("Form submitted (simulation):", values);
-    toast({
-        title: "Message envoyé (Simulation) !",
-        description: "Nous avons bien reçu votre message et nous vous répondrons bientôt.",
-    });
-    form.reset();
+    setIsSubmitting(true);
+    const { error } = await supabase.from('contactFormSubmissions').insert([values]);
+
+    if (error) {
+        toast({
+            variant: "destructive",
+            title: "Erreur lors de l'envoi",
+            description: "Une erreur est survenue. Veuillez réessayer.",
+        });
+    } else {
+        toast({
+            title: "Message envoyé !",
+            description: "Nous avons bien reçu votre message et nous vous répondrons bientôt.",
+        });
+        form.reset();
+    }
+    setIsSubmitting(false);
   }
 
   return (
@@ -108,8 +122,8 @@ export default function ContactForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? 'Envoi en cours...' : 'Envoyer le message'}
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? 'Envoi en cours...' : 'Envoyer le message'}
         </Button>
       </form>
     </Form>
