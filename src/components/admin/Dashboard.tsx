@@ -19,7 +19,10 @@ import {
   LineChart,
   Line,
 } from 'recharts';
-import { Eye, FileCheck, UserPlus } from 'lucide-react';
+import { Eye, FileCheck, UserPlus, Loader2 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 const visitsData = [
   { name: 'Jan', visits: 4000 },
@@ -39,41 +42,92 @@ const submissionsData = [
 ];
 
 export default function Dashboard() {
+  const [stats, setStats] = useState({
+    applications: 0,
+    submissions: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const supabase = createClient();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      setIsLoading(true);
+
+      const { count: applicationsCount, error: applicationsError } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: submissionsCount, error: submissionsError } = await supabase
+        .from('contactFormSubmissions')
+        .select('*', { count: 'exact', head: true });
+
+      if (applicationsError || submissionsError) {
+        console.error('Error fetching stats:', applicationsError || submissionsError);
+        toast({
+          variant: 'destructive',
+          title: 'Erreur de chargement des statistiques',
+          description: applicationsError?.message || submissionsError?.message,
+        });
+      } else {
+        const totalSubmissions = (applicationsCount || 0) + (submissionsCount || 0);
+        setStats({
+          applications: applicationsCount || 0,
+          submissions: totalSubmissions,
+        });
+      }
+
+      setIsLoading(false);
+    };
+
+    fetchStats();
+  }, [supabase, toast]);
+
+  const StatCard = ({ title, value, icon: Icon, description, loading }: { title: string, value: string | number, icon: React.ElementType, description?: string, loading?: boolean }) => (
+     <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            <Icon className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+            {loading ? (
+                 <div className="h-10 flex items-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                 </div>
+            ) : (
+                <>
+                <div className="text-2xl font-bold">{value}</div>
+                {description && <p className="text-xs text-muted-foreground">{description}</p>}
+                </>
+            )}
+        </CardContent>
+    </Card>
+  )
+
   return (
     <div className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Visiteurs (30j)</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12,234</div>
-            <p className="text-xs text-muted-foreground">+20.1% depuis le mois dernier</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Formulaires soumis
-            </CardTitle>
-            <FileCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+235</div>
-            <p className="text-xs text-muted-foreground">+18.1% depuis le mois dernier</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Candidatures</CardTitle>
-            <UserPlus className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+16</div>
-            <p className="text-xs text-muted-foreground">+5 depuis la semaine dernière</p>
-          </CardContent>
-        </Card>
+        <StatCard 
+            title="Visiteurs (30j)"
+            value="12,234"
+            icon={Eye}
+            description="+20.1% depuis le mois dernier"
+            loading={false}
+        />
+        <StatCard 
+            title="Formulaires soumis"
+            value={stats.submissions}
+            icon={FileCheck}
+            description="Candidatures et messages"
+            loading={isLoading}
+        />
+         <StatCard 
+            title="Candidatures"
+            value={stats.applications}
+            icon={UserPlus}
+            description="Total des candidatures reçues"
+            loading={isLoading}
+        />
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">
@@ -105,7 +159,7 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle>Soumissions de formulaires par service</CardTitle>
             <CardDescription>
-              Nombre de demandes par type et par service.
+              Données statiques. Peut être dynamisé à l'avenir.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -116,9 +170,9 @@ export default function Dashboard() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="devis" fill="hsl(var(--primary))" />
-                <Bar dataKey="contact" fill="hsl(var(--accent))" />
-                <Bar dataKey="candidatures" fill="hsl(var(--muted-foreground))" />
+                <Bar dataKey="devis" fill="hsl(var(--chart-1))" name="Devis"/>
+                <Bar dataKey="contact" fill="hsl(var(--chart-2))" name="Contact"/>
+                <Bar dataKey="candidatures" fill="hsl(var(--chart-3))" name="Candidatures"/>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -127,3 +181,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
