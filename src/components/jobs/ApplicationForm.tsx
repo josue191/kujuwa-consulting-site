@@ -108,7 +108,7 @@ export default function ApplicationForm() {
         toast({
             variant: "destructive",
             title: "Erreur lors de l'envoi",
-            description: "Une erreur est survenue. Veuillez réessayer.",
+            description: insertError.message || "Une erreur est survenue. Veuillez réessayer.",
         });
     } else {
         toast({
