@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { jobOffersContent } from '@/lib/data';
 
 type Application = {
   id: string;
@@ -24,12 +25,11 @@ type Application = {
   cv_url: string;
 };
 
-// This can be expanded in the future to fetch job titles from the jobPostings table
-const jobTitles: { [key: string]: string } = {
-    'chef-de-projet-en-construction': 'Chef de Projet en Construction',
-    'specialiste-en-suivi-evaluation': 'Spécialiste en Suivi & Évaluation',
-    'gestionnaire-de-flotte-de-transport': 'Gestionnaire de Flotte de Transport'
-};
+// Create a mapping from job ID to job title for easy lookup
+const jobTitles = jobOffersContent.offers.reduce((acc, offer) => {
+  acc[offer.id] = offer.title;
+  return acc;
+}, {} as Record<string, string>);
 
 
 export default function CandidaturesPage() {
@@ -106,7 +106,7 @@ export default function CandidaturesPage() {
                   <TableCell>{jobTitles[application.job_posting_id] || application.job_posting_id}</TableCell>
                   <TableCell>
                     <Button variant="ghost" size="icon" asChild>
-                        <a href={application.cv_url} target="_blank" rel="noopener noreferrer">
+                        <a href={application.cv_url} target="_blank" rel="noopener noreferrer" aria-label="Télécharger le CV">
                             <Download className="h-4 w-4" />
                         </a>
                     </Button>
@@ -141,5 +141,3 @@ export default function CandidaturesPage() {
     </div>
   );
 }
-
-    
