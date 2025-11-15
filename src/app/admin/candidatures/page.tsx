@@ -9,11 +9,27 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Loader2, Download } from 'lucide-react';
+import { MoreHorizontal, Loader2, Download, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type Application = {
   id: string;
@@ -24,36 +40,81 @@ type Application = {
   cv_url: string;
 };
 
-
 export default function CandidaturesPage() {
-    const [applications, setApplications] = useState<Application[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const supabase = createClient();
-    const { toast } = useToast();
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [applicationToDelete, setApplicationToDelete] = useState<Application | null>(null);
+  const supabase = createClient();
+  const { toast } = useToast();
 
-    useEffect(() => {
-       const fetchApplications = async () => {
-         setIsLoading(true);
-         const { data, error } = await supabase
-           .from('applications')
-           .select('*')
-           .order('created_at', { ascending: false });
+  useEffect(() => {
+    const fetchApplications = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('applications')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-         if (error) {
-           console.error('Error fetching applications:', error.message);
-           toast({
-             variant: 'destructive',
-             title: 'Erreur de chargement',
-             description: `Une erreur est survenue: ${error.message}`,
-           });
-         } else {
-           setApplications(data || []);
-         }
-         setIsLoading(false);
-       };
+      if (error) {
+        console.error('Error fetching applications:', error.message);
+        toast({
+          variant: 'destructive',
+          title: 'Erreur de chargement',
+          description: `Une erreur est survenue: ${error.message}`,
+        });
+      } else {
+        setApplications(data || []);
+      }
+      setIsLoading(false);
+    };
 
-       fetchApplications();
-    }, [supabase, toast]);
+    fetchApplications();
+  }, [supabase, toast]);
+
+  const handleDelete = async () => {
+    if (!applicationToDelete) return;
+
+    // 1. Delete the CV file from storage
+    const cvUrl = applicationToDelete.cv_url;
+    const fileName = cvUrl.split('/').pop();
+
+    if (fileName) {
+        const { error: storageError } = await supabase.storage
+            .from('cvs')
+            .remove([fileName]);
+        
+        if (storageError) {
+            console.error("Error deleting CV file:", storageError.message);
+            toast({
+                variant: 'destructive',
+                title: 'Erreur de suppression du CV',
+                description: `Le fichier CV n'a pas pu être supprimé : ${storageError.message}`,
+            });
+            // We can decide to stop here or continue to delete the application record
+        }
+    }
+
+    // 2. Delete the application record from the table
+    const { error: dbError } = await supabase
+      .from('applications')
+      .delete()
+      .match({ id: applicationToDelete.id });
+
+    if (dbError) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur de suppression',
+        description: `La candidature n'a pas pu être supprimée: ${dbError.message}`,
+      });
+    } else {
+      toast({
+        title: 'Candidature supprimée',
+        description: 'La candidature a été supprimée avec succès.',
+      });
+      setApplications(applications.filter(app => app.id !== applicationToDelete.id));
+    }
+    setApplicationToDelete(null);
+  };
 
 
   const getBadgeVariant = (status: string) => {
@@ -99,9 +160,9 @@ export default function CandidaturesPage() {
                   <TableCell>{application.job_posting_id}</TableCell>
                   <TableCell>
                     <Button variant="ghost" size="icon" asChild>
-                        <a href={application.cv_url} target="_blank" rel="noopener noreferrer" aria-label="Télécharger le CV">
-                            <Download className="h-4 w-4" />
-                        </a>
+                      <a href={application.cv_url} target="_blank" rel="noopener noreferrer" aria-label="Télécharger le CV">
+                        <Download className="h-4 w-4" />
+                      </a>
                     </Button>
                   </TableCell>
                   <TableCell>
@@ -115,22 +176,55 @@ export default function CandidaturesPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Ouvrir le menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          className="text-red-500"
+                          onSelect={() => setApplicationToDelete(application)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
-               <TableRow>
+              <TableRow>
                 <TableCell colSpan={6} className="text-center h-24">
-                    Aucune candidature pour le moment.
+                  Aucune candidature pour le moment.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
+
+       {applicationToDelete && (
+        <AlertDialog open={!!applicationToDelete} onOpenChange={() => setApplicationToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cette candidature ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est irréversible. Elle supprimera définitivement la candidature et le CV associé.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }
