@@ -10,31 +10,50 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Loader2 } from 'lucide-react';
-import { useFirestore, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query, orderBy } from 'firebase/firestore';
-import { useCollection } from '@/firebase/firestore/use-collection';
 import { format } from 'date-fns';
+import { createClient } from '@/lib/supabase/client';
+import { useEffect, useState } from 'react';
 
 type Application = {
   id: string;
   name: string;
-  jobPostingId: string;
-  submittedAt: {
-    seconds: number;
-    nanoseconds: number;
-  };
+  job_posting_id: string;
+  created_at: string;
   status: string;
+  jobPostings: { title: string } | null;
 }
 
 export default function CandidaturesPage() {
-  const firestore = useFirestore();
+    const supabase = createClient();
+    const [applications, setApplications] = useState<Application[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-  const applicationsQuery = useMemoFirebase(() => {
-      if (!firestore) return null;
-      return query(collectionGroup(firestore, 'applications'), orderBy('submittedAt', 'desc'));
-  }, [firestore]);
-  
-  const { data: applications, isLoading } = useCollection<Application>(applicationsQuery);
+    useEffect(() => {
+        const fetchApplications = async () => {
+            setIsLoading(true);
+            const { data, error } = await supabase
+                .from('applications')
+                .select(`
+                    id,
+                    name,
+                    job_posting_id,
+                    created_at,
+                    status,
+                    jobPostings ( title )
+                `)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error fetching applications:', error);
+            } else {
+                setApplications(data as Application[]);
+            }
+            setIsLoading(false);
+        };
+
+        fetchApplications();
+    }, [supabase]);
+
 
   const getBadgeVariant = (status: string) => {
     switch (status) {
@@ -48,15 +67,6 @@ export default function CandidaturesPage() {
         return 'secondary';
     }
   };
-
-  const getJobTitle = (jobPostingId: string) => {
-    const titleMap: { [key: string]: string } = {
-        'chef-de-projet-en-construction': 'Chef de Projet en Construction',
-        'specialiste-en-suivi-evaluation': 'Spécialiste en Suivi & Évaluation',
-        'gestionnaire-de-flotte-de-transport': 'Gestionnaire de Flotte de Transport',
-    }
-    return titleMap[jobPostingId] || jobPostingId;
-  }
 
   return (
     <div className="w-full">
@@ -84,10 +94,10 @@ export default function CandidaturesPage() {
               applications.map((application) => (
                 <TableRow key={application.id}>
                   <TableCell className="font-medium">{application.name}</TableCell>
-                  <TableCell>{getJobTitle(application.jobPostingId)}</TableCell>
+                  <TableCell>{application.jobPostings?.title || application.job_posting_id}</TableCell>
                   <TableCell>
-                    {application.submittedAt
-                      ? format(new Date(application.submittedAt.seconds * 1000), 'dd/MM/yyyy')
+                    {application.created_at
+                      ? format(new Date(application.created_at), 'dd/MM/yyyy')
                       : 'N/A'}
                   </TableCell>
                   <TableCell>

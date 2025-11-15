@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import MainLayout from '@/components/layout/MainLayout';
-import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'Kujuwa Consulting',
@@ -33,10 +32,8 @@ export default function RootLayout({
       <body
         className={cn('min-h-screen bg-background font-body antialiased')}
       >
-        <FirebaseClientProvider>
-          <MainLayout>{children}</MainLayout>
-          <Toaster />
-        </FirebaseClientProvider>
+        <MainLayout>{children}</MainLayout>
+        <Toaster />
       </body>
     </html>
   );

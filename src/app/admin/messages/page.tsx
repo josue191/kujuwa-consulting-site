@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -10,10 +10,8 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Loader2, MoreHorizontal, Trash2 } from 'lucide-react';
-import { useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
-import { useCollection } from '@/firebase/firestore/use-collection';
 import { format } from 'date-fns';
+import { createClient } from '@/lib/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -47,9 +45,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-
 
 type ContactSubmission = {
   id: string;
@@ -57,46 +52,55 @@ type ContactSubmission = {
   email: string;
   subject: string;
   message: string;
-  submissionDate: {
-    seconds: number;
-    nanoseconds: number;
-  };
+  created_at: string;
 }
 
 export default function MessagesPage() {
-  const firestore = useFirestore();
+  const supabase = createClient();
   const { toast } = useToast();
+  const [submissions, setSubmissions] = useState<ContactSubmission[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<ContactSubmission | null>(null);
   const [submissionToDelete, setSubmissionToDelete] = useState<ContactSubmission | null>(null);
 
-  const submissionsQuery = useMemoFirebase(() => {
-      if (!firestore) return null;
-      return query(collection(firestore, 'contactFormSubmissions'), orderBy('submissionDate', 'desc'));
-  }, [firestore]);
-  
-  const { data: submissions, isLoading } = useCollection<ContactSubmission>(submissionsQuery);
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('contactFormSubmissions')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  const handleDelete = () => {
-    if (!submissionToDelete || !firestore) return;
+      if (error) {
+        console.error('Error fetching messages:', error);
+      } else {
+        setSubmissions(data as ContactSubmission[]);
+      }
+      setIsLoading(false);
+    };
+    fetchSubmissions();
+  }, [supabase]);
 
-    const docRef = doc(firestore, 'contactFormSubmissions', submissionToDelete.id);
+  const handleDelete = async () => {
+    if (!submissionToDelete) return;
     
-    deleteDoc(docRef)
-        .then(() => {
-            toast({
-                title: 'Message supprimé',
-                description: 'Le message a été supprimé avec succès.',
-            });
-        })
-        .catch(() => {
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: docRef.path,
-                operation: 'delete',
-            }));
-        })
-        .finally(() => {
-            setSubmissionToDelete(null);
+    const { error } = await supabase.from('contactFormSubmissions').delete().match({ id: submissionToDelete.id });
+    
+    if (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Erreur',
+            description: 'La suppression du message a échoué.',
         });
+        console.error("Error deleting submission:", error);
+    } else {
+        toast({
+            title: 'Message supprimé',
+            description: 'Le message a été supprimé avec succès.',
+        });
+        setSubmissions(submissions.filter(s => s.id !== submissionToDelete.id));
+    }
+    setSubmissionToDelete(null);
   };
 
 
@@ -128,8 +132,8 @@ export default function MessagesPage() {
                   <TableCell className="font-medium">{submission.name}</TableCell>
                   <TableCell>{submission.email}</TableCell>
                   <TableCell>
-                    {submission.submissionDate
-                      ? format(new Date(submission.submissionDate.seconds * 1000), 'dd/MM/yyyy HH:mm')
+                    {submission.created_at
+                      ? format(new Date(submission.created_at), 'dd/MM/yyyy HH:mm')
                       : 'N/A'}
                   </TableCell>
                   <TableCell className="text-right">
@@ -183,8 +187,8 @@ export default function MessagesPage() {
                     <div className="flex justify-between items-center px-6 pb-4 text-xs text-muted-foreground">
                         <span>{submission.email}</span>
                         <span>
-                            {submission.submissionDate
-                            ? format(new Date(submission.submissionDate.seconds * 1000), 'dd/MM/yy')
+                            {submission.created_at
+                            ? format(new Date(submission.created_at), 'dd/MM/yy')
                             : 'N/A'}
                         </span>
                     </div>
@@ -224,7 +228,7 @@ export default function MessagesPage() {
                 </div>
                 <DialogFooter>
                     <div className="text-xs text-muted-foreground text-right w-full">
-                        Reçu le {format(new Date(selectedSubmission.submissionDate.seconds * 1000), 'dd MMMM yyyy \'à\' HH:mm')}
+                        Reçu le {format(new Date(selectedSubmission.created_at), "dd MMMM yyyy 'à' HH:mm")}
                     </div>
                 </DialogFooter>
             </DialogContent>

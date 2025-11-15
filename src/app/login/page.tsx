@@ -17,8 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { createClient } from '@/lib/supabase/client';
 import Logo from '@/components/shared/Logo';
 
 const formSchema = z.object({
@@ -29,7 +28,7 @@ const formSchema = z.object({
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const auth = useAuth();
+  const supabase = createClient();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -42,19 +41,23 @@ export default function LoginPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
-      router.push('/admin');
-    } catch (error) {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: values.email,
+      password: values.password,
+    });
+
+    if (error) {
       console.error('Failed to sign in', error);
       toast({
         variant: 'destructive',
         title: 'Erreur de connexion',
         description: 'Email ou mot de passe incorrect.',
       });
-    } finally {
-      setIsLoading(false);
+    } else {
+      router.push('/admin');
+      router.refresh();
     }
+    setIsLoading(false);
   }
 
   return (

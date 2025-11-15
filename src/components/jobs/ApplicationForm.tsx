@@ -3,7 +3,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { addDoc, collection, serverTimestamp, doc, setDoc } from "firebase/firestore";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useFirestore } from "@/firebase";
+import { createClient } from "@/lib/supabase/client";
 import { jobOffersContent } from "@/lib/data";
 
 
@@ -40,7 +39,7 @@ const formSchema = z.object({
 
 export default function ApplicationForm() {
   const { toast } = useToast();
-  const firestore = useFirestore();
+  const supabase = createClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const offers = jobOffersContent.offers.map(offer => ({
@@ -63,43 +62,41 @@ export default function ApplicationForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-        if (!firestore) throw new Error("Firestore not initialized");
-
-        // Ensure the parent jobPosting document exists before adding a subcollection.
-        // This is good practice and helps avoid certain Firestore query issues.
-        const jobPostingRef = doc(firestore, "jobPostings", values.jobPostingId);
         const offerData = offers.find(o => o.id === values.jobPostingId);
+        
+        // Ensure the job posting exists, or create it
         if (offerData) {
-            await setDoc(jobPostingRef, {
+            await supabase.from('jobPostings').upsert({
+                id: offerData.id,
                 title: offerData.title,
                 domain: offerData.domain,
                 location: offerData.location,
-            }, { merge: true });
+            }, { onConflict: 'id' });
         }
-        
-        const applicationsCollection = collection(firestore, `jobPostings/${values.jobPostingId}/applications`);
-        await addDoc(applicationsCollection, {
+
+        const { error } = await supabase.from('applications').insert({
             name: values.name,
             email: values.email,
             phone: values.phone,
             motivation: values.motivation,
-            cvUrl: values.cvUrl,
-            submittedAt: serverTimestamp(),
+            cv_url: values.cvUrl,
             status: 'Nouveau',
-            jobPostingId: values.jobPostingId
+            job_posting_id: values.jobPostingId
         });
+
+        if (error) throw error;
 
         toast({
             title: "Candidature envoyée !",
             description: "Nous avons bien reçu votre candidature et nous vous remercions.",
         });
         form.reset();
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error submitting application: ", error);
         toast({
             variant: "destructive",
             title: "Erreur lors de la soumission",
-            description: "Une erreur est survenue. Veuillez réessayer.",
+            description: error.message || "Une erreur est survenue. Veuillez réessayer.",
         });
     } finally {
         setIsSubmitting(false);

@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Briefcase,
   Users,
@@ -25,9 +25,8 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import Logo from '@/components/shared/Logo';
-import { useUser, useAuth } from '@/firebase';
-import { signOut } from 'firebase/auth';
-import { Button } from '@/components/ui/button';
+import { createClient } from '@/lib/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
 const navItems = [
   { href: '/admin', icon: BarChart, label: 'Tableau de bord' },
@@ -41,9 +40,29 @@ const navItems = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isUserLoading } = useUser();
-  const auth = useAuth();
+  const supabase = createClient();
+  const [user, setUser] = useState<User | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
 
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setIsUserLoading(false);
+    };
+
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (!session?.user) {
+        router.push('/login');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router, supabase.auth]);
+  
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
@@ -51,10 +70,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [user, isUserLoading, router]);
 
   const handleSignOut = async () => {
-    if (auth) {
-      await signOut(auth);
-    }
+    await supabase.auth.signOut();
     router.push('/login');
+    router.refresh();
   };
 
   const getTitle = () => {

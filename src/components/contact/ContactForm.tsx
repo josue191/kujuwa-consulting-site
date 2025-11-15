@@ -3,7 +3,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore } from "@/firebase";
+import { createClient } from "@/lib/supabase/client";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères." }),
@@ -28,7 +27,7 @@ const formSchema = z.object({
 
 export default function ContactForm() {
   const { toast } = useToast();
-  const firestore = useFirestore();
+  const supabase = createClient();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -42,24 +41,20 @@ export default function ContactForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-        if (!firestore) throw new Error("Firestore is not initialized");
-        const contactFormSubmissionsCollection = collection(firestore, 'contactFormSubmissions');
-        await addDoc(contactFormSubmissionsCollection, {
-            ...values,
-            submissionDate: serverTimestamp(),
-        });
+        const { error } = await supabase.from('contactFormSubmissions').insert(values);
+        if (error) throw error;
         
         toast({
             title: "Message envoyé !",
             description: "Nous avons bien reçu votre message et nous vous répondrons bientôt.",
         });
         form.reset();
-    } catch(error) {
+    } catch(error: any) {
         console.error("Error submitting contact form: ", error);
         toast({
             variant: "destructive",
             title: "Erreur lors de l'envoi",
-            description: "Une erreur est survenue. Veuillez réessayer.",
+            description: error.message || "Une erreur est survenue. Veuillez réessayer.",
         });
     }
   }
