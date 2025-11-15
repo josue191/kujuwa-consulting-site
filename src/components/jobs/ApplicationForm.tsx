@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState } from "react";
+import { v4 as uuidv4 } from 'uuid';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { jobOffersContent } from "@/lib/data";
+import { createClient } from "@/lib/supabase/client";
 
 
 const formSchema = z.object({
@@ -32,13 +34,21 @@ const formSchema = z.object({
   name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères." }),
   email: z.string().email({ message: "Veuillez entrer une adresse email valide." }),
   phone: z.string().min(10, { message: "Le numéro de téléphone doit être valide." }),
-  cvUrl: z.string().url({ message: "Veuillez entrer un lien valide (URL)." }),
+  cvFile: z
+    .instanceof(FileList)
+    .refine((files) => files?.length === 1, "Un fichier CV est requis.")
+    .refine((files) => files?.[0]?.size <= 5000000, `La taille max est 5MB.`)
+    .refine(
+      (files) => ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"].includes(files?.[0]?.type),
+      "Formats supportés: .pdf, .doc, .docx"
+    ),
   motivation: z.string().min(10, { message: "Le message doit contenir au moins 10 caractères." }),
 });
 
 export default function ApplicationForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const supabase = createClient();
 
   const offers = jobOffersContent.offers.map(offer => ({
       ...offer,
@@ -52,24 +62,62 @@ export default function ApplicationForm() {
       name: "",
       email: "",
       phone: "",
-      cvUrl: "",
       motivation: "",
     },
   });
+  
+  const cvFileRef = form.register("cvFile");
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
-    // Simulating form submission
-    console.log("Application submitted (simulation):", values);
     
-    setTimeout(() => {
+    const cvFile = values.cvFile[0];
+    if (!cvFile) {
+        toast({ variant: "destructive", title: "Erreur", description: "Fichier CV manquant." });
+        setIsSubmitting(false);
+        return;
+    }
+
+    const fileName = `${uuidv4()}-${cvFile.name}`;
+    const { data: fileData, error: uploadError } = await supabase.storage
+      .from('cvs')
+      .upload(fileName, cvFile);
+
+    if (uploadError) {
+        toast({ variant: "destructive", title: "Erreur de téléversement", description: uploadError.message });
+        setIsSubmitting(false);
+        return;
+    }
+    
+    const { data: urlData } = supabase.storage.from('cvs').getPublicUrl(fileName);
+    const cvUrl = urlData.publicUrl;
+
+
+    const applicationData = {
+        job_posting_id: values.jobPostingId,
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        cv_url: cvUrl,
+        motivation: values.motivation
+    };
+
+    const { error: insertError } = await supabase.from('applications').insert([applicationData]);
+
+    if (insertError) {
         toast({
-            title: "Candidature envoyée (Simulation) !",
+            variant: "destructive",
+            title: "Erreur lors de l'envoi",
+            description: "Une erreur est survenue. Veuillez réessayer.",
+        });
+    } else {
+        toast({
+            title: "Candidature envoyée !",
             description: "Nous avons bien reçu votre candidature et nous vous remercions.",
         });
         form.reset();
-        setIsSubmitting(false);
-    }, 1000);
+    }
+    setIsSubmitting(false);
   }
 
   return (
@@ -142,14 +190,15 @@ export default function ApplicationForm() {
         </div>
         <FormField
           control={form.control}
-          name="cvUrl"
+          name="cvFile"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Lien vers votre CV</FormLabel>
+              <FormLabel>Votre CV (PDF, DOC, DOCX - 5MB max)</FormLabel>
               <FormControl>
                 <Input 
-                  placeholder="https://www.dropbox.com/s/..."
-                  {...field}
+                  type="file"
+                  accept=".pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  {...cvFileRef}
                 />
               </FormControl>
               <FormMessage />
@@ -180,3 +229,5 @@ export default function ApplicationForm() {
     </Form>
   );
 }
+
+    

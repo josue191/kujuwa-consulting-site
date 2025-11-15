@@ -9,55 +9,58 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Loader2 } from 'lucide-react';
+import { MoreHorizontal, Loader2, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 type Application = {
   id: string;
   name: string;
-  jobPostings: { title: string } | null;
+  job_posting_id: string;
   created_at: string;
   status: string;
+  cv_url: string;
 };
 
-const mockApplications: Application[] = [
-  {
-    id: '1',
-    name: 'Alice Dupont',
-    jobPostings: { title: 'Chef de Projet en Construction' },
-    created_at: new Date().toISOString(),
-    status: 'Nouveau',
-  },
-  {
-    id: '2',
-    name: 'Bob Martin',
-    jobPostings: { title: 'Spécialiste en Suivi & Évaluation' },
-    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    status: 'En cours',
-  },
-  {
-    id: '3',
-    name: 'Claire Leroy',
-    jobPostings: { title: 'Gestionnaire de Flotte de Transport' },
-    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    status: 'Archivé',
-  },
-];
+// This can be expanded in the future to fetch job titles from the jobPostings table
+const jobTitles: { [key: string]: string } = {
+    'chef-de-projet-en-construction': 'Chef de Projet en Construction',
+    'specialiste-en-suivi-evaluation': 'Spécialiste en Suivi & Évaluation',
+    'gestionnaire-de-flotte-de-transport': 'Gestionnaire de Flotte de Transport'
+};
+
 
 export default function CandidaturesPage() {
     const [applications, setApplications] = useState<Application[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const supabase = createClient();
+    const { toast } = useToast();
 
     useEffect(() => {
-        // Simulating data fetching
-        const timer = setTimeout(() => {
-            setApplications(mockApplications);
-            setIsLoading(false);
-        }, 1000);
+       const fetchApplications = async () => {
+         setIsLoading(true);
+         const { data, error } = await supabase
+           .from('applications')
+           .select('*')
+           .order('created_at', { ascending: false });
 
-        return () => clearTimeout(timer);
-    }, []);
+         if (error) {
+           console.error('Error fetching applications:', error);
+           toast({
+             variant: 'destructive',
+             title: 'Erreur de chargement',
+             description: 'Impossible de récupérer les candidatures.',
+           });
+         } else {
+           setApplications(data || []);
+         }
+         setIsLoading(false);
+       };
+
+       fetchApplications();
+    }, [supabase, toast]);
 
 
   const getBadgeVariant = (status: string) => {
@@ -81,6 +84,7 @@ export default function CandidaturesPage() {
             <TableRow>
               <TableHead>Nom du candidat</TableHead>
               <TableHead>Poste</TableHead>
+              <TableHead>CV</TableHead>
               <TableHead>Date de soumission</TableHead>
               <TableHead>Statut</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -89,7 +93,7 @@ export default function CandidaturesPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={6} className="text-center">
                   <div className="flex justify-center items-center p-8">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
@@ -99,7 +103,14 @@ export default function CandidaturesPage() {
               applications.map((application) => (
                 <TableRow key={application.id}>
                   <TableCell className="font-medium">{application.name}</TableCell>
-                  <TableCell>{application.jobPostings?.title || 'N/A'}</TableCell>
+                  <TableCell>{jobTitles[application.job_posting_id] || application.job_posting_id}</TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" asChild>
+                        <a href={application.cv_url} target="_blank" rel="noopener noreferrer">
+                            <Download className="h-4 w-4" />
+                        </a>
+                    </Button>
+                  </TableCell>
                   <TableCell>
                     {application.created_at
                       ? format(new Date(application.created_at), 'dd/MM/yyyy')
@@ -119,7 +130,7 @@ export default function CandidaturesPage() {
               ))
             ) : (
                <TableRow>
-                <TableCell colSpan={5} className="text-center h-24">
+                <TableCell colSpan={6} className="text-center h-24">
                     Aucune candidature pour le moment.
                 </TableCell>
               </TableRow>
@@ -130,3 +141,5 @@ export default function CandidaturesPage() {
     </div>
   );
 }
+
+    
