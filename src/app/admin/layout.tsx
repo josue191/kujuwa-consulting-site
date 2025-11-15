@@ -11,6 +11,7 @@ import {
   Building,
   LogOut,
   Mail,
+  FilePlus2,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -29,6 +30,7 @@ import Logo from '@/components/shared/Logo';
 const navItems = [
   { href: '/admin', icon: BarChart, label: 'Tableau de bord' },
   { href: '/admin/contenu', icon: FileText, label: 'Contenu' },
+  { href: '/admin/offres', icon: FilePlus2, label: 'Offres d\'emploi' },
   { href: '/admin/candidatures', icon: Briefcase, label: 'Candidatures' },
   { href: '/admin/messages', icon: Mail, label: 'Messages' },
   { href: '/admin/services', icon: Building, label: 'Services' },
