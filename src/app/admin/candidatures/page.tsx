@@ -47,11 +47,11 @@ export default function CandidaturesPage() {
            .order('created_at', { ascending: false });
 
          if (error) {
-           console.error('Error fetching applications:', error);
+           console.error('Error fetching applications:', error.message);
            toast({
              variant: 'destructive',
              title: 'Erreur de chargement',
-             description: 'Impossible de récupérer les candidatures.',
+             description: `Une erreur est survenue: ${error.message}`,
            });
          } else {
            setApplications(data || []);
