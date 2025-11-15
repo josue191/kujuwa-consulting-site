@@ -54,8 +54,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     getUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (event === 'SIGNED_IN' && pathname === '/login') {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      
+      if (event === 'SIGNED_IN' && pathname !== '/admin') {
          router.push('/admin');
       }
       if (event === 'SIGNED_OUT') {
@@ -76,7 +78,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/login');
-    router.refresh();
   };
 
   const getTitle = () => {
