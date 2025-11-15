@@ -35,7 +35,7 @@ const formSchema = z.object({
   email: z.string().email({ message: "Veuillez entrer une adresse email valide." }),
   phone: z.string().min(10, { message: "Le numéro de téléphone doit être valide." }),
   cvFile: z
-    .instanceof(FileList)
+    .any()
     .refine((files) => files?.length === 1, "Un fichier CV est requis.")
     .refine((files) => files?.[0]?.size <= 5000000, `La taille max est 5MB.`)
     .refine(
@@ -229,5 +229,3 @@ export default function ApplicationForm() {
     </Form>
   );
 }
-
-    
