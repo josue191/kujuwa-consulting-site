@@ -55,11 +55,10 @@ export default function LoginPage() {
       });
       setIsLoading(false);
     } else {
-      // On successful login, refresh the page to trigger the layout's auth check.
-      // The layout will handle redirecting to the correct admin page.
       router.refresh();
+      // The redirect is handled by the admin layout, so we don't need to do anything else here.
+      // We also don't set isLoading to false, as the page will be refreshing.
     }
-    // Don't set isLoading to false here on success, as the page will be refreshing.
   }
 
   return (
