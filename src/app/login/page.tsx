@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/shared/Logo';
+import { createClient } from '@/lib/supabase/client';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Veuillez entrer une adresse email valide.' }),
@@ -28,6 +29,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const supabase = createClient();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -40,23 +42,28 @@ export default function LoginPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
-    // Simulating login
-    setTimeout(() => {
-        if (values.email === "admin@example.com" && values.password === "password") {
-            toast({
-                title: 'Connexion réussie',
-                description: 'Redirection vers le tableau de bord.',
-            });
-            router.push('/admin');
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Erreur de connexion',
-                description: 'Email ou mot de passe incorrect.',
-            });
-        }
-        setIsLoading(false);
-    }, 1000);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: values.email,
+      password: values.password,
+    });
+    
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur de connexion',
+        description: error.message || 'Email ou mot de passe incorrect.',
+      });
+      setIsLoading(false);
+    } else {
+      toast({
+        title: 'Connexion réussie',
+        description: 'Redirection vers le tableau de bord.',
+      });
+      // Refresh the page to trigger the auth listener in the layout
+      router.refresh();
+      // Redirect to admin page
+      router.push('/admin');
+    }
   }
 
   return (
