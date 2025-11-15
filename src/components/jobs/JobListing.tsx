@@ -1,11 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar } from "lucide-react";
+import { MapPin } from "lucide-react";
 
 type JobOffer = {
   title: string;
   location: string;
-  deadline: string;
   domain: string;
 };
 
@@ -24,10 +23,6 @@ export default function JobListing({ offer }: JobListingProps) {
         <div className="flex items-center gap-2">
           <MapPin className="h-4 w-4" />
           <span>{offer.location}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4" />
-          <span>Date limite: {offer.deadline}</span>
         </div>
       </CardContent>
     </Card>

@@ -341,19 +341,16 @@ export const jobOffersContent = {
     {
       title: 'Chef de Projet en Construction',
       location: 'Kinshasa',
-      deadline: '31/12/2024',
       domain: 'Construction',
     },
     {
       title: 'Spécialiste en Suivi & Évaluation',
       location: 'Goma',
-      deadline: '15/01/2025',
       domain: 'Consultance',
     },
     {
       title: 'Gestionnaire de Flotte de Transport',
       location: 'Kinshasa',
-      deadline: '20/01/2025',
       domain: 'Transport',
     },
   ],
