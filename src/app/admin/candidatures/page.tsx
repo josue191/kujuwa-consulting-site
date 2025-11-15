@@ -14,7 +14,6 @@ import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { jobOffersContent } from '@/lib/data';
 
 type Application = {
   id: string;
@@ -24,12 +23,6 @@ type Application = {
   status: string;
   cv_url: string;
 };
-
-// Create a mapping from job ID to job title for easy lookup
-const jobTitles = jobOffersContent.offers.reduce((acc, offer) => {
-  acc[offer.id] = offer.title;
-  return acc;
-}, {} as Record<string, string>);
 
 
 export default function CandidaturesPage() {
@@ -83,7 +76,7 @@ export default function CandidaturesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nom du candidat</TableHead>
-              <TableHead>Poste</TableHead>
+              <TableHead>Poste (ID)</TableHead>
               <TableHead>CV</TableHead>
               <TableHead>Date de soumission</TableHead>
               <TableHead>Statut</TableHead>
@@ -103,7 +96,7 @@ export default function CandidaturesPage() {
               applications.map((application) => (
                 <TableRow key={application.id}>
                   <TableCell className="font-medium">{application.name}</TableCell>
-                  <TableCell>{jobTitles[application.job_posting_id] || application.job_posting_id}</TableCell>
+                  <TableCell>{application.job_posting_id}</TableCell>
                   <TableCell>
                     <Button variant="ghost" size="icon" asChild>
                         <a href={application.cv_url} target="_blank" rel="noopener noreferrer" aria-label="Télécharger le CV">
