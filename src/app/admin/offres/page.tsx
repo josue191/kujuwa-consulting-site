@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Table,
@@ -74,6 +73,7 @@ export default function OffresPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<JobPosting | null>(null);
   const [jobToDelete, setJobToDelete] = useState<JobPosting | null>(null);
+  const [selectedJob, setSelectedJob] = useState<JobPosting | null>(null);
 
   const supabase = createClient();
   const { toast } = useToast();
@@ -149,7 +149,7 @@ export default function OffresPage() {
       // Update
       const { error: updateError } = await supabase
         .from('jobPostings')
-        .update({ ...values })
+        .update({ ...values, description: values.description })
         .match({ id: editingJob.id });
       error = updateError;
     } else {
@@ -157,7 +157,7 @@ export default function OffresPage() {
       const newId = generateSlug(values.title);
       const { error: insertError } = await supabase
         .from('jobPostings')
-        .insert([{ ...values, id: newId }]);
+        .insert([{ ...values, id: newId, description: values.description }]);
       error = insertError;
     }
 
@@ -231,7 +231,7 @@ export default function OffresPage() {
               </TableRow>
             ) : jobPostings && jobPostings.length > 0 ? (
               jobPostings.map((job) => (
-                <TableRow key={job.id}>
+                <TableRow key={job.id} onClick={() => setSelectedJob(job)} className="cursor-pointer">
                   <TableCell className="font-medium">{job.title}</TableCell>
                   <TableCell>{job.domain}</TableCell>
                    <TableCell>
@@ -245,7 +245,7 @@ export default function OffresPage() {
                       ? format(new Date(job.created_at), 'dd/MM/yyyy')
                       : 'N/A'}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -280,6 +280,32 @@ export default function OffresPage() {
           </TableBody>
         </Table>
       </div>
+
+       {selectedJob && (
+        <Dialog open={!!selectedJob} onOpenChange={() => setSelectedJob(null)}>
+            <DialogContent className="sm:max-w-[625px]">
+                <DialogHeader>
+                    <DialogTitle className="break-words">{selectedJob.title}</DialogTitle>
+                    <DialogDescription>
+                        {selectedJob.domain} - {selectedJob.location}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-6">
+                    <div className="space-y-2">
+                        <h4 className="text-sm font-semibold">Description du poste</h4>
+                        <div className="text-sm bg-muted p-4 rounded-md whitespace-pre-wrap break-words border max-h-[40vh] overflow-y-auto">
+                            {selectedJob.description}
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <div className="text-xs text-muted-foreground text-right w-full">
+                        Créée le {format(new Date(selectedJob.created_at), "dd MMMM yyyy 'à' HH:mm")}
+                    </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+      )}
 
        {isFormOpen && (
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -379,5 +405,3 @@ export default function OffresPage() {
     </div>
   );
 }
-
-    
