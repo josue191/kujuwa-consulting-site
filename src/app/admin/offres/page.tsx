@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Table,
@@ -118,7 +119,7 @@ export default function OffresPage() {
         title: job.title,
         domain: job.domain,
         location: job.location,
-        description: job.description
+        description: job.description || ''
     });
     setIsFormOpen(true);
   };
