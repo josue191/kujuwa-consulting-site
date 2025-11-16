@@ -25,8 +25,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { jobOffersContent } from "@/lib/data";
 import { createClient } from "@/lib/supabase/client";
+
+type JobPosting = {
+  id: string;
+  title: string;
+};
+
+type ApplicationFormProps = {
+  offers: JobPosting[];
+};
 
 
 const formSchema = z.object({
@@ -45,11 +53,10 @@ const formSchema = z.object({
   motivation: z.string().min(10, { message: "Le message doit contenir au moins 10 caractères." }),
 });
 
-export default function ApplicationForm() {
+export default function ApplicationForm({ offers }: ApplicationFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const supabase = createClient();
-  const offers = jobOffersContent.offers;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -131,11 +138,15 @@ export default function ApplicationForm() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {offers.map((offer) => (
-                    <SelectItem key={offer.id} value={offer.id}>
-                      {offer.title}
-                    </SelectItem>
-                  ))}
+                  {offers && offers.length > 0 ? (
+                    offers.map((offer) => (
+                      <SelectItem key={offer.id} value={offer.id}>
+                        {offer.title}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-offer" disabled>Aucun poste disponible</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
               <FormMessage />
