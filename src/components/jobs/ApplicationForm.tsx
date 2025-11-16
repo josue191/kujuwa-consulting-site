@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
 
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ type JobPosting = {
 
 type ApplicationFormProps = {
   offers: JobPosting[];
+  selectedOfferId?: string;
 };
 
 
@@ -53,7 +54,7 @@ const formSchema = z.object({
   motivation: z.string().min(10, { message: "Le message doit contenir au moins 10 caractères." }),
 });
 
-export default function ApplicationForm({ offers }: ApplicationFormProps) {
+export default function ApplicationForm({ offers, selectedOfferId }: ApplicationFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const supabase = createClient();
@@ -61,12 +62,19 @@ export default function ApplicationForm({ offers }: ApplicationFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      jobPostingId: selectedOfferId || undefined,
       name: "",
       email: "",
       phone: "",
       motivation: "",
     },
   });
+
+  useEffect(() => {
+    if (selectedOfferId) {
+        form.setValue("jobPostingId", selectedOfferId);
+    }
+  }, [selectedOfferId, form]);
   
   const cvFileRef = form.register("cvFile");
 
@@ -118,6 +126,10 @@ export default function ApplicationForm({ offers }: ApplicationFormProps) {
             description: "Nous avons bien reçu votre candidature et nous vous remercions.",
         });
         form.reset();
+        // Reset job posting ID if it wasn't pre-selected
+        if (!selectedOfferId) {
+            form.setValue("jobPostingId", "");
+        }
     }
     setIsSubmitting(false);
   }
@@ -131,7 +143,7 @@ export default function ApplicationForm({ offers }: ApplicationFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Poste souhaité</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value} disabled={!!selectedOfferId}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionnez le poste qui vous intéresse" />
