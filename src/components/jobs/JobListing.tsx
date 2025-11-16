@@ -19,7 +19,8 @@ type JobListingProps = {
 
 export default function JobListing({ offer }: JobListingProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const isLongDescription = offer.description.length > 150;
+  const descriptionText = offer.description || '';
+  const isLongDescription = descriptionText.length > 150;
 
   return (
     <Card className="hover:shadow-lg transition-shadow flex flex-col">
@@ -32,21 +33,23 @@ export default function JobListing({ offer }: JobListingProps) {
           <MapPin className="h-4 w-4" />
           <span>{offer.location}</span>
         </div>
-        <div>
-          <p className={`whitespace-pre-wrap ${!isExpanded && isLongDescription ? 'line-clamp-4' : ''}`}>
-            {offer.description}
-          </p>
-          {isLongDescription && (
-             <Button 
-                variant="link" 
-                size="sm" 
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="p-0 h-auto mt-2"
-             >
-                {isExpanded ? 'Voir moins' : 'Voir plus'}
-             </Button>
-          )}
-        </div>
+        {descriptionText && (
+          <div>
+            <p className={`whitespace-pre-wrap ${!isExpanded && isLongDescription ? 'line-clamp-4' : ''}`}>
+              {descriptionText}
+            </p>
+            {isLongDescription && (
+               <Button 
+                  variant="link" 
+                  size="sm" 
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="p-0 h-auto mt-2"
+               >
+                  {isExpanded ? 'Voir moins' : 'Voir plus'}
+               </Button>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
