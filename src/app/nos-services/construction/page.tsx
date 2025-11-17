@@ -1,10 +1,20 @@
 import PageHeader from '@/components/shared/PageHeader';
-import { services } from '@/lib/data';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, HardHat } from 'lucide-react';
+
+const service = {
+    id: 'construction',
+    title: 'Construction',
+    description: 'Réalisation de projets de construction (bâtiments, routes) en respectant les normes de qualité et de durabilité.',
+    icon: HardHat,
+    subServices: [
+        { title: 'Conception et planification (BTP)', description: 'Élaboration de plans architecturaux et techniques pour des projets de toute envergure.' },
+        { title: 'Construction de bâtiments', description: 'Réalisation de constructions résidentielles, commerciales et industrielles.' },
+        { title: 'Travaux publics et infrastructures', description: 'Construction de routes, ponts, et autres infrastructures essentielles.' },
+        { title: 'Rénovation et réhabilitation', description: 'Modernisation et mise aux normes de bâtiments existants.' }
+    ]
+};
 
 export default function ConstructionPage() {
-  const service = services.find((s) => s.id === 'construction');
-
   if (!service) return null;
 
   return (

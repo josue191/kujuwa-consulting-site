@@ -1,10 +1,20 @@
 import PageHeader from '@/components/shared/PageHeader';
-import { services } from '@/lib/data';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, BrainCircuit } from 'lucide-react';
+
+const service = {
+  id: 'consultance',
+  title: 'Consultance et Mentorat',
+  description: 'Accompagnement stratégique pour vos projets, de la conception à la réalisation, avec un focus sur la recherche et l\'évaluation.',
+  icon: BrainCircuit,
+  subServices: [
+    { title: 'Suivi et évaluation de projets', description: 'Mise en place de systèmes de suivi pour mesurer la performance et l\'impact de vos initiatives.' },
+    { title: 'Recherche et études de marché', description: 'Collecte et analyse de données pour éclairer vos décisions stratégiques.' },
+    { title: 'Planification stratégique', description: 'Développement de feuilles de route claires pour atteindre vos objectifs à long terme.' },
+    { title: 'Renforcement des capacités', description: 'Formation et coaching pour améliorer les compétences de vos équipes.' }
+  ]
+};
 
 export default function ConsultancePage() {
-  const service = services.find((s) => s.id === 'consultance');
-
   if (!service) return null;
 
   return (

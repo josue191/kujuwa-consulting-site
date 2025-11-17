@@ -1,10 +1,20 @@
 import PageHeader from '@/components/shared/PageHeader';
-import { services } from '@/lib/data';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Printer } from 'lucide-react';
+
+const service = {
+    id: 'papeterie',
+    title: 'Fournitures et Papeterie',
+    description: 'Fourniture de matériel de bureau et d\'articles de papeterie pour les entreprises et les organisations.',
+    icon: Printer,
+    subServices: [
+        { title: 'Fournitures de bureau', description: 'Catalogue complet d\'articles de bureau, des stylos au papier.' },
+        { title: 'Matériel informatique et consommables', description: 'Cartouches d\'encre, toners, et autres consommables informatiques.' },
+        { title: 'Services d\'impression', description: 'Impression de documents, rapports, et supports de communication.' },
+        { title: 'Personnalisation d\'objets', description: 'Marquage et personnalisation de vos articles de bureau et promotionnels.' }
+    ]
+};
 
 export default function PapeteriePage() {
-  const service = services.find((s) => s.id === 'papeterie');
-
   if (!service) return null;
 
   return (

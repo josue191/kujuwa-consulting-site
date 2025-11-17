@@ -1,10 +1,20 @@
 import PageHeader from '@/components/shared/PageHeader';
-import { services } from '@/lib/data';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Wrench } from 'lucide-react';
+
+const service = {
+    id: 'mecanique',
+    title: 'Mécanique et Entretien',
+    description: 'Entretien et réparation de véhicules et d\'engins de chantier pour garantir la continuité de vos opérations.',
+    icon: Wrench,
+    subServices: [
+        { title: 'Entretien préventif de flottes', description: 'Programmes de maintenance pour véhicules légers, lourds et engins de chantier.' },
+        { title: 'Réparation mécanique générale', description: 'Diagnostic et réparation de pannes moteur, transmission, et autres systèmes.' },
+        { title: 'Vente de pièces de rechange', description: 'Fourniture de pièces d\'origine et de qualité pour tous types de véhicules.' },
+        { title: 'Assistance et dépannage', description: 'Intervention rapide pour les pannes sur site ou sur route.' }
+    ]
+};
 
 export default function MecaniquePage() {
-  const service = services.find((s) => s.id === 'mecanique');
-
   if (!service) return null;
 
   return (

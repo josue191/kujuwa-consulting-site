@@ -1,10 +1,20 @@
 import PageHeader from '@/components/shared/PageHeader';
-import { services } from '@/lib/data';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Home } from 'lucide-react';
+
+const service = {
+    id: 'immobilier',
+    title: 'Immobilier',
+    description: 'Gestion, achat et vente de biens immobiliers avec une expertise locale approfondie pour sécuriser vos investissements.',
+    icon: Home,
+    subServices: [
+        { title: 'Gestion locative', description: 'Administration complète de vos biens immobiliers pour une tranquillité d\'esprit.' },
+        { title: 'Transaction immobilière', description: 'Accompagnement pour l\'achat, la vente ou la location de propriétés.' },
+        { title: 'Conseil en investissement', description: 'Analyse du marché pour identifier les meilleures opportunités d\'investissement immobilier.' },
+        { title: 'Expertise et évaluation', description: 'Estimation de la valeur de vos biens selon les standards du marché.' }
+    ]
+};
 
 export default function ImmobilierPage() {
-  const service = services.find((s) => s.id === 'immobilier');
-
   if (!service) return null;
 
   return (

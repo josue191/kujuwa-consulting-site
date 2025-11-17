@@ -1,10 +1,20 @@
 import PageHeader from '@/components/shared/PageHeader';
-import { services } from '@/lib/data';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Truck } from 'lucide-react';
+
+const service = {
+    id: 'transport',
+    title: 'Transport et Logistique',
+    description: 'Solutions de transport fiables et optimisées pour vos marchandises et matériels, partout en RDC.',
+    icon: Truck,
+    subServices: [
+        { title: 'Transport de marchandises', description: 'Acheminement sécurisé de vos biens et produits sur l\'ensemble du territoire.' },
+        { title: 'Location d\'engins de chantier', description: 'Mise à disposition de matériel BTP pour vos projets de construction.' },
+        { title: 'Logistique de projet', description: 'Gestion complète de la chaîne logistique pour vos projets complexes.' },
+        { title: 'Dédouanement et formalités', description: 'Prise en charge des procédures douanières pour l\'import-export.' }
+    ]
+};
 
 export default function TransportPage() {
-  const service = services.find((s) => s.id === 'transport');
-
   if (!service) return null;
 
   return (

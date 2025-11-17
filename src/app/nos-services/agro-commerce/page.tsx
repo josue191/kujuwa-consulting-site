@@ -1,10 +1,20 @@
 import PageHeader from '@/components/shared/PageHeader';
-import { services } from '@/lib/data';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Wheat } from 'lucide-react';
+
+const service = {
+  id: 'agro-commerce',
+  title: 'Agro-Commerce',
+  description: 'Facilitation du commerce de produits agricoles, de la production à la commercialisation, pour soutenir les filières locales.',
+  icon: Wheat,
+  subServices: [
+    { title: 'Étude de filières agricoles', description: 'Analyse des chaînes de valeur pour identifier les opportunités et les goulots d\'étranglement.' },
+    { title: 'Mise en relation d\'acteurs', description: 'Connexion entre producteurs, transformateurs et distributeurs pour des partenariats fructueux.' },
+    { title: 'Logistique et distribution', description: 'Solutions de transport et de stockage adaptées aux produits agricoles.' },
+    { title: 'Accès au marché', description: 'Stratégies pour pénétrer de nouveaux marchés locaux et régionaux.' }
+  ]
+};
 
 export default function AgroCommercePage() {
-  const service = services.find((s) => s.id === 'agro-commerce');
-
   if (!service) return null;
 
   return (
