@@ -13,6 +13,7 @@ import {
   Mail,
   FilePlus2,
   Loader2,
+  Presentation,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -39,6 +40,7 @@ const navItems = [
   { href: '/admin/messages', icon: Mail, label: 'Messages' },
   { href: '/admin/services', icon: Building, label: 'Services' },
   { href: '/admin/equipe', icon: Users, label: 'Équipe' },
+  { href: '/admin/projets', icon: Presentation, label: 'Projets' },
   { href: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs' },
 ];
 
