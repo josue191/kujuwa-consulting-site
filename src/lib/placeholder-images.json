@@ -57,7 +57,7 @@
     {
       "id": "realisation-3",
       "description": "Image for the third completed project.",
-      "imageUrl": "https://images.unsplash.com/photo-1758940886543-c8146b0377fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjb21tdW5pdHklMjB0cmFpbmluZ3xlbnwwfHx8fDE3NjEyODc1OTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1758940886543-c8146b0377fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjb21tdW5pdHklMjB0cmFpbmluZ3xlbnwwfHx8fDE3NjEyODc1OTd8MA&ixlibrb-4.1.0&q=80&w=1080",
       "imageHint": "community training"
     },
     {
@@ -69,8 +69,8 @@
     {
       "id": "service-consultance",
       "description": "Image for the consultancy service.",
-      "imageUrl": "https://images.unsplash.com/photo-1603202662747-00e33e7d1468?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxidXNpbmVzcyUyMG1lZXRpbmd8ZW58MHx8fHwxNzYxMTU5MzQzfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "business meeting"
+      "imageUrl": "https://images.unsplash.com/photo-1643952538183-132338045631",
+      "imageHint": "african business meeting"
     },
     {
       "id": "service-transport",
