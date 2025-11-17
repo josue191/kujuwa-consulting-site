@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import React from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 import {
   Briefcase,
   Users,
@@ -12,6 +12,7 @@ import {
   LogOut,
   Mail,
   FilePlus2,
+  Loader2,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -26,6 +27,9 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import Logo from '@/components/shared/Logo';
+import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import type { User } from '@supabase/supabase-js';
 
 const navItems = [
   { href: '/admin', icon: BarChart, label: 'Tableau de bord' },
@@ -39,6 +43,44 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
+  const { toast } = useToast();
+  
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.replace('/login');
+      } else {
+        setUser(user);
+        setIsLoading(false);
+      }
+    };
+
+    checkUser();
+  }, [router, supabase.auth]);
+
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur de déconnexion',
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: 'Déconnexion réussie',
+      });
+      router.refresh();
+      router.push('/login');
+    }
+  };
 
   const getTitle = () => {
     if (pathname === '/admin') return 'Tableau de bord';
@@ -47,6 +89,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
   
   const title = getTitle();
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -78,11 +128,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                 <SidebarMenuButton>
-                    <Link href="/" className='flex items-center gap-2'>
-                        <LogOut />
-                        Quitter l'admin
-                    </Link>
+                 <SidebarMenuButton onClick={handleLogout}>
+                    <LogOut />
+                    Déconnexion
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -95,7 +143,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <h1 className="text-2xl font-bold font-headline">{title}</h1>
             </div>
             <div>
-               <p className="text-sm text-muted-foreground">admin@example.com</p>
+               <p className="text-sm text-muted-foreground">{user?.email}</p>
             </div>
           </header>
           <div className="p-4 lg:p-8 flex-1">
