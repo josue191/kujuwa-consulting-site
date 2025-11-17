@@ -51,23 +51,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/login');
+      } else {
+        setUser(user);
+        setIsLoading(false);
+      }
+    };
+
+    checkUser();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (event === 'SIGNED_IN') {
-          setUser(session?.user ?? null);
-          setIsLoading(false);
-          router.push('/admin'); // Redirect to admin dashboard on sign in
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setIsLoading(false);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (event === 'SIGNED_OUT') {
           router.push('/login');
-        } else {
-            // Initial check
-            setUser(session?.user ?? null);
-            setIsLoading(false);
-            if (!session?.user){
-                router.push('/login');
-            }
+        }
+        if(!currentUser && !isLoading) {
+            router.push('/login');
         }
       }
     );
@@ -75,7 +79,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => {
       subscription.unsubscribe();
     };
-  }, [router, supabase.auth]);
+  }, [router, supabase, isLoading]);
 
 
   const handleLogout = async () => {
@@ -90,6 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       toast({
         title: 'Déconnexion réussie',
       });
+      setUser(null);
       router.push('/login');
     }
   };
@@ -111,7 +116,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   if (!user) {
-    return null; // Don't render anything while redirecting
+     return null; // Redirecting...
   }
 
   return (

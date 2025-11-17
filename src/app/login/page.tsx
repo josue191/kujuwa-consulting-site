@@ -59,8 +59,7 @@ export default function LoginPage() {
         title: 'Connexion réussie',
         description: 'Redirection vers le tableau de bord.',
       });
-      // Refresh the page to let the AdminLayout handle the redirection.
-      router.refresh();
+      router.push('/admin');
     }
   }
 
