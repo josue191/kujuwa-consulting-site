@@ -19,40 +19,41 @@ import {
   LineChart,
   Line,
 } from 'recharts';
-import { Eye, FileCheck, UserPlus, Loader2 } from 'lucide-react';
+import { FileCheck, UserPlus, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { subDays, format, eachDayOfInterval } from 'date-fns';
 
-const visitsData = [
-  { name: 'Jan', visits: 4000 },
-  { name: 'Feb', visits: 3000 },
-  { name: 'Mar', visits: 5000 },
-  { name: 'Apr', visits: 4500 },
-  { name: 'May', visits: 6000 },
-  { name: 'Jun', visits: 5500 },
-];
+type DailySubmissions = {
+  date: string;
+  candidatures: number;
+  messages: number;
+};
 
-const submissionsData = [
-  { name: 'Consultance', devis: 40, contact: 24, candidatures: 5 },
-  { name: 'Transport', devis: 30, contact: 13, candidatures: 2 },
-  { name: 'Immobilier', devis: 20, contact: 98, candidatures: 1 },
-  { name: 'Construction', devis: 27, contact: 39, candidatures: 8 },
-  { name: 'Papeterie', devis: 18, contact: 48, candidatures: 0 },
-];
+type SubmissionsByDomain = {
+  name: string;
+  candidatures: number;
+}
+
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
     applications: 0,
     submissions: 0,
   });
+  const [submissionsHistory, setSubmissionsHistory] = useState<DailySubmissions[]>([]);
+  const [applicationsByDomain, setApplicationsByDomain] = useState<SubmissionsByDomain[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchDashboardData = async () => {
       setIsLoading(true);
+
+      const thirtyDaysAgo = subDays(new Date(), 30);
 
       const { count: applicationsCount, error: applicationsError } = await supabase
         .from('applications')
@@ -61,26 +62,85 @@ export default function Dashboard() {
       const { count: submissionsCount, error: submissionsError } = await supabase
         .from('contactFormSubmissions')
         .select('*', { count: 'exact', head: true });
+        
+      const { data: applicationsData, error: applicationsDataError } = await supabase
+        .from('applications')
+        .select('created_at')
+        .gte('created_at', thirtyDaysAgo.toISOString());
+        
+      const { data: contactsData, error: contactsDataError } = await supabase
+        .from('contactFormSubmissions')
+        .select('created_at')
+        .gte('created_at', thirtyDaysAgo.toISOString());
 
-      if (applicationsError || submissionsError) {
-        console.error('Error fetching stats:', applicationsError || submissionsError);
+      const { data: jobPostings, error: jobPostingsError } = await supabase
+        .from('jobPostings')
+        .select('id, domain');
+
+      const { data: allApplications, error: allApplicationsError } = await supabase
+        .from('applications')
+        .select('job_posting_id');
+
+      if (applicationsError || submissionsError || applicationsDataError || contactsDataError || jobPostingsError || allApplicationsError) {
+        const error = applicationsError || submissionsError || applicationsDataError || contactsDataError || jobPostingsError || allApplicationsError;
+        console.error('Error fetching dashboard data:', error);
         toast({
           variant: 'destructive',
-          title: 'Erreur de chargement des statistiques',
-          description: applicationsError?.message || submissionsError?.message,
+          title: 'Erreur de chargement du tableau de bord',
+          description: error?.message,
         });
       } else {
+        // --- Process Total Stats ---
         const totalSubmissions = (applicationsCount || 0) + (submissionsCount || 0);
         setStats({
           applications: applicationsCount || 0,
           submissions: totalSubmissions,
         });
+
+        // --- Process History Chart ---
+        const interval = eachDayOfInterval({ start: thirtyDaysAgo, end: new Date() });
+        const dailyData = interval.map(day => ({
+          date: format(day, 'dd/MM'),
+          candidatures: 0,
+          messages: 0,
+        }));
+        
+        applicationsData.forEach(app => {
+            const dateStr = format(new Date(app.created_at), 'dd/MM');
+            const dayData = dailyData.find(d => d.date === dateStr);
+            if (dayData) dayData.candidatures++;
+        });
+
+        contactsData.forEach(contact => {
+            const dateStr = format(new Date(contact.created_at), 'dd/MM');
+            const dayData = dailyData.find(d => d.date === dateStr);
+            if (dayData) dayData.messages++;
+        });
+
+        setSubmissionsHistory(dailyData);
+
+        // --- Process Submissions by Domain Chart ---
+        const domainCounts: { [key: string]: number } = {};
+        allApplications.forEach(app => {
+          const posting = jobPostings.find(p => p.id === app.job_posting_id);
+          if (posting && posting.domain) {
+            domainCounts[posting.domain] = (domainCounts[posting.domain] || 0) + 1;
+          }
+        });
+        
+        const domainChartData = Object.entries(domainCounts).map(([name, count]) => ({
+          name,
+          candidatures: count,
+        }));
+
+        setApplicationsByDomain(domainChartData);
+
       }
 
       setIsLoading(false);
     };
 
-    fetchStats();
+    fetchDashboardData();
   }, [supabase, toast]);
 
   const StatCard = ({ title, value, icon: Icon, description, loading }: { title: string, value: string | number, icon: React.ElementType, description?: string, loading?: boolean }) => (
@@ -106,14 +166,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <StatCard 
-            title="Visiteurs (30j)"
-            value="12,234"
-            icon={Eye}
-            description="+20.1% depuis le mois dernier"
-            loading={false}
-        />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
         <StatCard 
             title="Formulaires soumis"
             value={stats.submissions}
@@ -133,47 +186,64 @@ export default function Dashboard() {
       <div className="grid gap-8 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Visites du site</CardTitle>
-            <CardDescription>Visites uniques des 6 derniers mois.</CardDescription>
+            <CardTitle>Soumissions des 30 derniers jours</CardTitle>
+            <CardDescription>Candidatures et messages de contact reçus.</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={visitsData}>
+               {isLoading ? (
+                 <div className="flex items-center justify-center h-full">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                 </div>
+                ) : (
+              <LineChart data={submissionsHistory}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
+                <XAxis dataKey="date" />
+                <YAxis allowDecimals={false} />
                 <Tooltip />
                 <Legend />
                 <Line
                   type="monotone"
-                  dataKey="visits"
-                  stroke="hsl(var(--primary))"
+                  dataKey="candidatures"
+                  stroke="hsl(var(--chart-1))"
+                  name="Candidatures"
                   strokeWidth={2}
-                  activeDot={{ r: 8 }}
+                />
+                 <Line
+                  type="monotone"
+                  dataKey="messages"
+                  stroke="hsl(var(--chart-2))"
+                  name="Messages"
+                  strokeWidth={2}
                 />
               </LineChart>
+              )}
             </ResponsiveContainer>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Soumissions de formulaires par service</CardTitle>
+            <CardTitle>Candidatures par domaine</CardTitle>
             <CardDescription>
-              Données statiques. Peut être dynamisé à l'avenir.
+              Répartition des candidatures reçues par domaine d'emploi.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={submissionsData}>
+              {isLoading ? (
+                 <div className="flex items-center justify-center h-full">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                 </div>
+                ) : (
+              <BarChart data={applicationsByDomain} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
+                <XAxis type="number" />
+                <YAxis dataKey="name" type="category" width={80} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="devis" fill="hsl(var(--chart-1))" name="Devis"/>
-                <Bar dataKey="contact" fill="hsl(var(--chart-2))" name="Contact"/>
-                <Bar dataKey="candidatures" fill="hsl(var(--chart-3))" name="Candidatures"/>
+                <Bar dataKey="candidatures" fill="hsl(var(--chart-1))" name="Candidatures"/>
               </BarChart>
+              )}
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -181,5 +251,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
