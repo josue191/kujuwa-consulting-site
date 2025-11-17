@@ -51,17 +51,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.replace('/login');
-      } else {
-        setUser(user);
-        setIsLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_IN') {
+          setUser(session?.user ?? null);
+          setIsLoading(false);
+          router.push('/admin'); // Redirect to admin dashboard on sign in
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setIsLoading(false);
+          router.push('/login');
+        } else {
+            // Initial check
+            setUser(session?.user ?? null);
+            setIsLoading(false);
+            if (!session?.user){
+                router.push('/login');
+            }
+        }
       }
-    };
+    );
 
-    checkUser();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [router, supabase.auth]);
 
 
@@ -77,7 +90,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       toast({
         title: 'Déconnexion réussie',
       });
-      router.refresh();
       router.push('/login');
     }
   };
@@ -96,6 +108,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (!user) {
+    return null; // Don't render anything while redirecting
   }
 
   return (

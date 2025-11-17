@@ -59,10 +59,8 @@ export default function LoginPage() {
         title: 'Connexion réussie',
         description: 'Redirection vers le tableau de bord.',
       });
-      // Refresh the page to trigger the auth listener in the layout
+      // Refresh the page to let the AdminLayout handle the redirection.
       router.refresh();
-      // Redirect to admin page
-      router.push('/admin');
     }
   }
 
