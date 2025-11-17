@@ -83,7 +83,7 @@ export default function ProjectsPage() {
 
   const supabase = createClient();
   const { toast } = useToast();
-
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -93,20 +93,23 @@ export default function ProjectsPage() {
       description: '',
     },
   });
+
+  const imageFileRef = form.register("imageFile");
+  const reportFileRef = form.register("reportFile");
   
   const fetchProjects = async () => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('projects')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('year', { ascending: false });
 
     if (error) {
       console.error('Error fetching projects:', error.message);
       toast({
         variant: 'destructive',
         title: 'Erreur de chargement',
-        description: `Une erreur est survenue: ${error.message}`,
+        description: `Impossible de charger les projets: ${error.message}`,
       });
     } else {
       setProjects(data || []);
@@ -122,9 +125,9 @@ export default function ProjectsPage() {
     setEditingProject(project);
     form.reset({
         title: project.title,
-        category: project.category,
-        year: project.year,
-        description: project.description,
+        category: project.category || '',
+        year: project.year || new Date().getFullYear(),
+        description: project.description || '',
     });
     setIsFormOpen(true);
   };
@@ -142,14 +145,10 @@ export default function ProjectsPage() {
   
   const uploadFile = async (file: File, bucket: 'project-images' | 'project-reports') => {
       const fileName = `${uuidv4()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-          .from(bucket)
-          .upload(fileName, file);
-      if (uploadError) {
-          throw uploadError;
-      }
-      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
-      return urlData.publicUrl;
+      const { error } = await supabase.storage.from(bucket).upload(fileName, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
+      return data.publicUrl;
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -200,6 +199,7 @@ export default function ProjectsPage() {
       fetchProjects();
 
     } catch (error: any) {
+        console.error("Submit error:", error);
         toast({ variant: 'destructive', title: "Erreur lors de l'enregistrement", description: error.message });
     }
   }
@@ -250,7 +250,7 @@ export default function ProjectsPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={4} className="text-center"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /></TableCell></TableRow>
             ) : projects.length > 0 ? (
               projects.map((project) => (
                 <TableRow key={project.id}>
@@ -262,7 +262,7 @@ export default function ProjectsPage() {
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onSelect={() => handleEdit(project)}><Edit className="mr-2 h-4 w-4" />Modifier</DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-500" onSelect={() => setProjectToDelete(project)}><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onSelect={() => setProjectToDelete(project)}><Trash2 className="mr-2 h-4 w-4" />Supprimer</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -283,35 +283,37 @@ export default function ProjectsPage() {
             </DialogHeader>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
-                  <ScrollArea className="h-[60vh] pr-6">
-                    <div className="space-y-4 py-4">
-                        <FormField control={form.control} name="title" render={({ field }) => (
-                            <FormItem><FormLabel>Titre du projet</FormLabel><FormControl><Input placeholder="Titre..." {...field} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField control={form.control} name="category" render={({ field }) => (
-                              <FormItem><FormLabel>Catégorie</FormLabel><FormControl><Input placeholder="Ex: Étude" {...field} /></FormControl><FormMessage /></FormItem>
+                  <div className="h-[60vh] pr-2">
+                    <ScrollArea className="h-full pr-4">
+                      <div className="space-y-4 py-4">
+                          <FormField control={form.control} name="title" render={({ field }) => (
+                              <FormItem><FormLabel>Titre du projet</FormLabel><FormControl><Input placeholder="Titre..." {...field} /></FormControl><FormMessage /></FormItem>
                           )}/>
-                          <FormField control={form.control} name="year" render={({ field }) => (
-                              <FormItem><FormLabel>Année</FormLabel><FormControl><Input type="number" placeholder="Ex: 2024" {...field} /></FormControl><FormMessage /></FormItem>
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField control={form.control} name="category" render={({ field }) => (
+                                <FormItem><FormLabel>Catégorie</FormLabel><FormControl><Input placeholder="Ex: Étude" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="year" render={({ field }) => (
+                                <FormItem><FormLabel>Année</FormLabel><FormControl><Input type="number" placeholder="Ex: 2024" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                          </div>
+                          <FormField control={form.control} name="description" render={({ field }) => (
+                            <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Description..." {...field} /></FormControl><FormMessage /></FormItem>
                           )}/>
-                        </div>
-                        <FormField control={form.control} name="description" render={({ field }) => (
-                          <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Description..." {...field} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                        <FormField control={form.control} name="imageFile" render={() => (
-                            <FormItem><FormLabel>Image du projet</FormLabel><FormControl><Input type="file" accept="image/*" {...form.register("imageFile")} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                        {editingProject?.image_url && <Image src={editingProject.image_url} alt={editingProject.title} width={80} height={80} className="rounded-md object-cover" />}
-                        
-                        <FormField control={form.control} name="reportFile" render={() => (
-                            <FormItem><FormLabel>Rapport du projet (PDF, DOCX)</FormLabel><FormControl><Input type="file" accept=".pdf,.doc,.docx" {...form.register("reportFile")} /></FormControl><FormMessage /></FormItem>
-                        )}/>
-                         {editingProject?.report_url && <a href={editingProject.report_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">Voir le rapport actuel</a>}
+                          <FormField control={form.control} name="imageFile" render={() => (
+                              <FormItem><FormLabel>Image du projet (facultatif)</FormLabel><FormControl><Input type="file" accept="image/*" {...imageFileRef} /></FormControl><FormMessage /></FormItem>
+                          )}/>
+                          {editingProject?.image_url && <Image src={editingProject.image_url} alt={editingProject.title} width={80} height={80} className="rounded-md object-cover" />}
+                          
+                          <FormField control={form.control} name="reportFile" render={() => (
+                              <FormItem><FormLabel>Rapport du projet (PDF, DOCX - facultatif)</FormLabel><FormControl><Input type="file" accept=".pdf,.doc,.docx" {...reportFileRef} /></FormControl><FormMessage /></FormItem>
+                          )}/>
+                           {editingProject?.report_url && <a href={editingProject.report_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">Voir le rapport actuel</a>}
 
-                    </div>
-                  </ScrollArea>
-                  <DialogFooter className="pt-4">
+                      </div>
+                    </ScrollArea>
+                  </div>
+                  <DialogFooter>
                       <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annuler</Button>
                       <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Enregistrement...' : 'Enregistrer'}</Button>
                   </DialogFooter>
@@ -322,8 +324,8 @@ export default function ProjectsPage() {
 
       <AlertDialog open={!!projectToDelete} onOpenChange={() => setProjectToDelete(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Supprimer ce projet ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogHeader><AlertDialogTitle>Supprimer ce projet ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible et supprimera le projet ainsi que ses fichiers associés.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

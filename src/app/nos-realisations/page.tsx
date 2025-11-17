@@ -56,7 +56,7 @@ export default function RealisationsPage() {
       setIsLoading(false);
     };
 
-    fetchProjects();
+    // fetchProjects(); // Temporarily disabled
   }, []);
 
   return (
