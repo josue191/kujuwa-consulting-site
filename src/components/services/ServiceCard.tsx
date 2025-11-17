@@ -12,55 +12,61 @@ import {
 import { Button } from '@/components/ui/button';
 import { iconMap } from '@/lib/icon-map';
 import type { Service } from '@/app/nos-services/page';
-import { Skeleton } from '../ui/skeleton';
-
 
 type ServiceCardProps = {
   service: Service;
 };
 
 export default function ServiceCard({ service }: ServiceCardProps) {
-    const Icon = iconMap[service.icon as keyof typeof iconMap] || MoreHorizontal;
+  const Icon = iconMap[service.icon as keyof typeof iconMap] || MoreHorizontal;
 
   return (
-    <Card className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-      <div className="relative h-48 w-full bg-muted">
+    <Card className="group relative flex h-80 flex-col justify-end overflow-hidden rounded-xl text-primary-foreground shadow-lg transition-all duration-300 hover:shadow-2xl">
+      {/* Image en arrière-plan */}
+      <div className="absolute inset-0 z-0">
         {service.image_url ? (
           <Image
             src={service.image_url}
             alt={service.title}
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-            <div className="flex items-center justify-center h-full">
-                <Icon className="h-12 w-12 text-muted-foreground/50" />
-            </div>
-        )}
-      </div>
-      <CardHeader className="flex-row items-start gap-4">
-        <div className="mt-1 flex-shrink-0">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Icon className="h-6 w-6" />
+          <div className="flex h-full w-full items-center justify-center bg-muted">
+            <Icon className="h-20 w-20 text-muted-foreground/30" />
           </div>
-        </div>
-        <div>
-          <CardTitle className="font-headline text-xl">
+        )}
+        {/* Dégradé pour la lisibilité */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+      </div>
+
+      {/* Contenu superposé */}
+      <div className="relative z-10 p-6">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/20 text-primary-foreground backdrop-blur-sm border border-white/10">
+            <Icon className="h-7 w-7" />
+          </div>
+          <CardTitle className="font-headline text-2xl drop-shadow-md">
             {service.title}
           </CardTitle>
-          <CardDescription className="mt-2 line-clamp-3">
+        </div>
+        <CardContent className="p-0 pt-4">
+          <CardDescription className="line-clamp-2 text-white/80">
             {service.description}
           </CardDescription>
-        </div>
-      </CardHeader>
-      <CardContent className="flex-grow"></CardContent>
-      <CardFooter>
-        <Button asChild variant="link" className="p-0 text-primary">
-          <Link href={`/nos-services/${service.id}`}>
-            Lire plus <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </CardFooter>
+        </CardContent>
+        <CardFooter className="p-0 pt-4">
+          <Button
+            asChild
+            variant="link"
+            className="p-0 text-primary-foreground hover:text-primary"
+          >
+            <Link href={`/nos-services/${service.id}`}>
+              Lire plus <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </CardFooter>
+      </div>
     </Card>
   );
 }
