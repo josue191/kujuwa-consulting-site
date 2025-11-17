@@ -46,40 +46,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const supabase = createClient();
   const { toast } = useToast();
-  
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [userEmail, setUserEmail] = useState<string | undefined>('');
+
 
   useEffect(() => {
-    const checkUser = async () => {
+    const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login');
-      } else {
-        setUser(user);
-        setIsLoading(false);
-      }
-    };
-
-    checkUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (event === 'SIGNED_OUT') {
-          router.push('/login');
-        }
-        if(!currentUser && !isLoading) {
-            router.push('/login');
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [router, supabase, isLoading]);
+      setUserEmail(user?.email);
+    }
+    fetchUser();
+  }, [supabase]);
 
 
   const handleLogout = async () => {
@@ -94,7 +70,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       toast({
         title: 'Déconnexion réussie',
       });
-      setUser(null);
       router.push('/login');
     }
   };
@@ -106,18 +81,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
   
   const title = getTitle();
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user) {
-     return null; // Redirecting...
-  }
 
   return (
     <SidebarProvider>
@@ -164,7 +127,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <h1 className="text-2xl font-bold font-headline">{title}</h1>
             </div>
             <div>
-               <p className="text-sm text-muted-foreground">{user?.email}</p>
+               <p className="text-sm text-muted-foreground">{userEmail}</p>
             </div>
           </header>
           <div className="p-4 lg:p-8 flex-1">
