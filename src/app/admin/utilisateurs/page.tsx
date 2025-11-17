@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, Loader2, Trash2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Loader2, Trash2, Users } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -24,15 +24,12 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -52,8 +49,6 @@ const formSchema = z.object({
 
 
 export default function UtilisateursPage() {
-    const [users, setUsers] = useState<User[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const supabase = createClient();
     const { toast } = useToast();
@@ -65,32 +60,15 @@ export default function UtilisateursPage() {
         },
     });
 
-    useEffect(() => {
-        const fetchUsers = async () => {
-            setIsLoading(true);
-            const { data: { users }, error } = await supabase.auth.admin.listUsers();
-            if (error) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Erreur de chargement',
-                    description: "Impossible de récupérer les utilisateurs.",
-                });
-            } else {
-                setUsers(users);
-            }
-            setIsLoading(false);
-        };
-        fetchUsers();
-    }, [supabase.auth.admin, toast]);
-
     async function onSubmit(values: z.infer<typeof formSchema>) {
+        // Note: You must enable the "Invite user" email template in your Supabase project settings.
         const { data, error } = await supabase.auth.admin.inviteUserByEmail(values.email);
 
         if (error) {
             toast({
                 variant: 'destructive',
                 title: "Erreur lors de l'invitation",
-                description: error.message,
+                description: `Cette action requiert des privilèges d'administrateur. Assurez-vous d'être connecté avec un compte disposant des droits nécessaires. Erreur: ${error.message}`,
             });
         } else {
             toast({
@@ -99,93 +77,39 @@ export default function UtilisateursPage() {
             });
             setIsFormOpen(false);
             form.reset();
-            // Optionnel: rafraîchir la liste des utilisateurs
-             const { data: { users: updatedUsers } } = await supabase.auth.admin.listUsers();
-             if (updatedUsers) setUsers(updatedUsers);
         }
     }
 
-    const getRoleFromMetadata = (metadata: any) => {
-        return metadata?.role || 'Utilisateur';
-    }
-
-    const getBadgeVariant = (role: string) => {
-        switch (role) {
-            case 'Admin': return 'destructive';
-            case 'Éditeur': return 'secondary';
-            case 'Recruteur': return 'default';
-            default: return 'outline';
-        }
-    }
 
     return (
-        <div className="w-full">
-            <div className="flex justify-end mb-4">
-                <Button onClick={() => setIsFormOpen(true)}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Ajouter un utilisateur
-                </Button>
-            </div>
-            <div className="border rounded-lg">
-                <Table>
-                <TableHeader>
-                    <TableRow>
-                    <TableHead>Utilisateur</TableHead>
-                    <TableHead>Rôle</TableHead>
-                    <TableHead>Date de création</TableHead>
-                    <TableHead>Dernière connexion</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {isLoading ? (
-                         <TableRow>
-                            <TableCell colSpan={5} className="text-center">
-                            <div className="flex justify-center items-center p-8">
-                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                            </div>
-                            </TableCell>
-                        </TableRow>
-                    ) : users && users.length > 0 ? (
-                        users.map((user) => (
-                            <TableRow key={user.id}>
-                                <TableCell>
-                                    <div className="flex items-center gap-3">
-                                        <Avatar>
-                                            <AvatarImage src={user.user_metadata.avatar_url} alt={user.user_metadata.full_name} />
-                                            <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            <div className="font-medium">{user.user_metadata.full_name || user.email}</div>
-                                            <div className="text-muted-foreground text-sm">{user.email}</div>
-                                        </div>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <Badge variant={getBadgeVariant(getRoleFromMetadata(user.user_metadata))}>
-                                        {getRoleFromMetadata(user.user_metadata)}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell>{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</TableCell>
-                                <TableCell>{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'Jamais'}</TableCell>
+        <div className="w-full max-w-2xl mx-auto">
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                         <div>
+                            <CardTitle>Gérer les accès</CardTitle>
+                            <CardDescription>Invitez de nouveaux utilisateurs à rejoindre le tableau de bord.</CardDescription>
+                         </div>
+                         <Users className="h-8 w-8 text-muted-foreground"/>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-center py-8 border bg-muted/50 rounded-lg">
+                        <p className="text-muted-foreground mb-4">Seuls les administrateurs peuvent inviter de nouveaux utilisateurs.</p>
+                        <Button onClick={() => setIsFormOpen(true)}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Inviter un nouvel utilisateur
+                        </Button>
+                    </div>
+                </CardContent>
+                 <CardContent>
+                    <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded-r-lg">
+                        <h4 className="font-bold">Information importante</h4>
+                        <p className="text-sm">Pour que les invitations par e-mail fonctionnent, vous devez activer le modèle d'e-mail **"Invite user"** dans les paramètres d'authentification de votre projet Supabase.</p>
+                    </div>
+                </CardContent>
+            </Card>
 
-                                <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" disabled>
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))
-                    ) : (
-                        <TableRow>
-                            <TableCell colSpan={5} className="text-center h-24">
-                            Aucun utilisateur trouvé.
-                            </TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-                </Table>
-            </div>
              {isFormOpen && (
                 <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                     <DialogContent className="sm:max-w-[425px]">
