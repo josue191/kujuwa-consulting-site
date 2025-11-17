@@ -53,6 +53,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { iconMap } from '@/lib/icon-map';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type Service = {
   id: string;
@@ -338,66 +339,70 @@ export default function ServicesPage() {
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                        <FormField
-                            control={form.control}
-                            name="title"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Titre du service</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Ex: Consultance et Mentorat" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="icon"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Nom de l'icône (Lucide React)</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Ex: BrainCircuit" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Description</FormLabel>
-                                <FormControl>
-                                    <Textarea placeholder="Description détaillée du service..." className="min-h-[120px]" {...field}/>
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="imageFile"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Image du service (JPG, PNG - 5MB max)</FormLabel>
-                                <FormControl>
-                                    <Input type="file" accept="image/png, image/jpeg, image/webp" {...form.register("imageFile")} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        {editingService?.image_url && (
-                           <div className="space-y-2">
-                               <Label>Image actuelle</Label>
-                               <Image src={editingService.image_url} alt={editingService.title} width={100} height={100} className="rounded-md object-cover" />
-                           </div>
-                        )}
-                        <DialogFooter>
+                    <form onSubmit={form.handleSubmit(onSubmit)}>
+                        <ScrollArea className="h-[60vh] pr-6">
+                            <div className="space-y-4 py-4">
+                                <FormField
+                                    control={form.control}
+                                    name="title"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Titre du service</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Ex: Consultance et Mentorat" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="icon"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Nom de l'icône (Lucide React)</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Ex: BrainCircuit" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="description"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Description</FormLabel>
+                                        <FormControl>
+                                            <Textarea placeholder="Description détaillée du service..." className="min-h-[120px]" {...field}/>
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="imageFile"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Image du service (JPG, PNG - 5MB max)</FormLabel>
+                                        <FormControl>
+                                            <Input type="file" accept="image/png, image/jpeg, image/webp" {...form.register("imageFile")} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                {editingService?.image_url && (
+                                <div className="space-y-2">
+                                    <Label>Image actuelle</Label>
+                                    <Image src={editingService.image_url} alt={editingService.title} width={100} height={100} className="rounded-md object-cover" />
+                                </div>
+                                )}
+                            </div>
+                        </ScrollArea>
+                        <DialogFooter className="pt-4">
                             <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annuler</Button>
                             <Button type="submit" disabled={form.formState.isSubmitting}>
                                 {form.formState.isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
@@ -430,3 +435,5 @@ export default function ServicesPage() {
     </div>
   );
 }
+
+    
