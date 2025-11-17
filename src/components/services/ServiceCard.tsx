@@ -6,7 +6,6 @@ import {
   CardContent,
   CardDescription,
   CardFooter,
-  CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,7 +42,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
       {/* Contenu superposé */}
       <div className="relative z-10 p-6">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/20 text-primary-foreground backdrop-blur-sm border border-white/10">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-primary backdrop-blur-sm border border-white/10">
             <Icon className="h-7 w-7" />
           </div>
           <CardTitle className="font-headline text-2xl drop-shadow-md">
