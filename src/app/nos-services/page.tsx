@@ -4,10 +4,17 @@ import PageHeader from '@/components/shared/PageHeader';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import ServiceCard from '@/components/services/ServiceCard';
-import type { Service } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
+export type Service = {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  image_url: string | null;
+  created_at: string;
+};
 
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
@@ -51,6 +58,7 @@ export default function ServicesPage() {
           {isLoading ? (
             Array.from({ length: 6 }).map((_, index) => (
                 <Card key={index}>
+                    <Skeleton className="h-48 w-full" />
                     <CardHeader className="flex-row items-start gap-4">
                         <Skeleton className="h-8 w-8 rounded-full" />
                         <div className="space-y-2">

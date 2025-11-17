@@ -39,6 +39,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { v4 as uuidv4 } from 'uuid';
 import {
     Form,
     FormControl,
@@ -50,6 +51,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { iconMap } from '@/lib/icon-map';
+import Image from 'next/image';
 
 type Service = {
   id: string;
@@ -57,12 +59,22 @@ type Service = {
   description: string;
   icon: string;
   created_at: string;
+  image_url: string | null;
 };
 
 const formSchema = z.object({
   title: z.string().min(5, { message: 'Le titre doit contenir au moins 5 caractères.' }),
   description: z.string().min(10, { message: 'La description doit contenir au moins 10 caractères.' }),
   icon: z.string().min(2, { message: 'Le nom de l\'icône est requis.' }),
+  imageFile: z
+    .any()
+    .optional()
+    .refine((files) => !files || files?.length === 1, "Vous ne pouvez téléverser qu'un seul fichier.")
+    .refine((files) => !files || files?.[0]?.size <= 5000000, `La taille max est 5MB.`)
+    .refine(
+      (files) => !files || ['image/jpeg', 'image/png', 'image/webp'].includes(files?.[0]?.type),
+      "Formats supportés: .jpg, .png, .webp"
+    ),
 });
 
 export default function ServicesPage() {
@@ -71,7 +83,6 @@ export default function ServicesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
 
   const supabase = createClient();
   const { toast } = useToast();
@@ -139,18 +150,51 @@ export default function ServicesPage() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    let imageUrl = editingService?.image_url || null;
+
+    const imageFile = values.imageFile?.[0];
+    if (imageFile) {
+        // Supprimer l'ancienne image si elle existe
+        if (editingService?.image_url) {
+            const oldFileName = editingService.image_url.split('/').pop();
+            if (oldFileName) {
+                await supabase.storage.from('service-images').remove([oldFileName]);
+            }
+        }
+
+        const fileName = `${uuidv4()}-${imageFile.name}`;
+        const { data: fileData, error: uploadError } = await supabase.storage
+            .from('service-images')
+            .upload(fileName, imageFile);
+
+        if (uploadError) {
+            toast({ variant: "destructive", title: "Erreur d'envoi de l'image", description: uploadError.message });
+            return;
+        }
+
+        const { data: urlData } = supabase.storage.from('service-images').getPublicUrl(fileName);
+        imageUrl = urlData.publicUrl;
+    }
+
+    const serviceData = {
+        title: values.title,
+        description: values.description,
+        icon: values.icon,
+        image_url: imageUrl,
+    };
+
     let error;
     if (editingService) {
       const { error: updateError } = await supabase
         .from('services')
-        .update(values)
+        .update(serviceData)
         .match({ id: editingService.id });
       error = updateError;
     } else {
       const newId = generateSlug(values.title);
       const { error: insertError } = await supabase
         .from('services')
-        .insert([{ ...values, id: newId }]);
+        .insert([{ ...serviceData, id: newId }]);
       error = insertError;
     }
 
@@ -172,6 +216,13 @@ export default function ServicesPage() {
   
   const handleDelete = async () => {
     if (!serviceToDelete) return;
+
+    if (serviceToDelete.image_url) {
+        const fileName = serviceToDelete.image_url.split('/').pop();
+        if (fileName) {
+            await supabase.storage.from('service-images').remove([fileName]);
+        }
+    }
 
     const { error } = await supabase
       .from('services')
@@ -211,6 +262,7 @@ export default function ServicesPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Image</TableHead>
               <TableHead>Titre du service</TableHead>
               <TableHead>Icône</TableHead>
               <TableHead>Description</TableHead>
@@ -220,7 +272,7 @@ export default function ServicesPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center">
+                <TableCell colSpan={5} className="text-center">
                   <div className="flex justify-center items-center p-8">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
@@ -228,11 +280,18 @@ export default function ServicesPage() {
               </TableRow>
             ) : services && services.length > 0 ? (
               services.map((service) => (
-                <TableRow key={service.id} onClick={() => setSelectedService(service)} className="cursor-pointer">
+                <TableRow key={service.id}>
+                  <TableCell>
+                    {service.image_url ? (
+                      <Image src={service.image_url} alt={service.title} width={64} height={64} className="rounded-md object-cover h-16 w-16" />
+                    ) : (
+                      <div className="h-16 w-16 bg-muted rounded-md flex items-center justify-center text-xs text-muted-foreground">Pas d'image</div>
+                    )}
+                  </TableCell>
                   <TableCell className="font-medium">{service.title}</TableCell>
                   <TableCell><IconComponent iconName={service.icon} /></TableCell>
-                  <TableCell className="max-w-sm truncate">{service.description}</TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="max-w-xs truncate">{service.description}</TableCell>
+                  <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -259,7 +318,7 @@ export default function ServicesPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="text-center h-24">
+                <TableCell colSpan={5} className="text-center h-24">
                   Aucun service pour le moment.
                 </TableCell>
               </TableRow>
@@ -318,6 +377,25 @@ export default function ServicesPage() {
                                 </FormItem>
                             )}
                         />
+                        <FormField
+                            control={form.control}
+                            name="imageFile"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Image du service (JPG, PNG - 5MB max)</FormLabel>
+                                <FormControl>
+                                    <Input type="file" accept="image/png, image/jpeg, image/webp" {...form.register("imageFile")} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        {editingService?.image_url && (
+                           <div className="space-y-2">
+                               <Label>Image actuelle</Label>
+                               <Image src={editingService.image_url} alt={editingService.title} width={100} height={100} className="rounded-md object-cover" />
+                           </div>
+                        )}
                         <DialogFooter>
                             <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annuler</Button>
                             <Button type="submit" disabled={form.formState.isSubmitting}>
@@ -336,7 +414,7 @@ export default function ServicesPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer ce service ?</AlertDialogTitle>
               <AlertDialogDescription>
-                Cette action est irréversible.
+                Cette action est irréversible et supprimera également l'image associée.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
