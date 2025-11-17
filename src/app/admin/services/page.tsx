@@ -52,6 +52,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { iconMap } from '@/lib/icon-map';
 import Image from 'next/image';
+import { Label } from '@/components/ui/label';
 
 type Service = {
   id: string;
