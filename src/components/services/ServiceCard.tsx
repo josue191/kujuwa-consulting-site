@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, MoreHorizontal } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -11,12 +11,16 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { Service } from '@/lib/data';
+import { iconMap } from '@/lib/icon-map';
+
 
 type ServiceCardProps = {
   service: Service;
 };
 
 export default function ServiceCard({ service }: ServiceCardProps) {
+    const Icon = iconMap[service.icon as keyof typeof iconMap] || MoreHorizontal;
+
   return (
     <Card className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
       {service.image && (
@@ -32,7 +36,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
       )}
       <CardHeader className="flex-row items-start gap-4">
         <div className="mt-1">
-          <service.icon className="h-8 w-8 text-primary" />
+          <Icon className="h-8 w-8 text-primary" />
         </div>
         <div>
           <CardTitle className="font-headline text-xl">
