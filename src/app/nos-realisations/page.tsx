@@ -65,10 +65,10 @@ export default function RealisationsPage() {
         title={realisationsContent.title}
         description={realisationsContent.description}
       />
-      <div className="container mx-auto max-w-7xl py-12 sm:py-16">
+      <div className="container mx-auto max-w-7xl px-4 py-12 sm:py-16">
         <div className="mb-12 flex flex-col items-center gap-4 md:flex-row">
           <div className="relative w-full md:flex-grow">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input placeholder="Rechercher par projet, domaine..." className="pl-10" />
           </div>
           {/* Add filter dropdowns here if needed */}
@@ -77,16 +77,16 @@ export default function RealisationsPage() {
         {isLoading ? (
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
              {Array.from({ length: 3 }).map((_, index) => (
-                <Card key={index}>
+                <Card key={index} className="flex flex-col">
                     <Skeleton className="h-56 w-full" />
                     <CardHeader>
                         <Skeleton className="h-6 w-3/4" />
                         <Skeleton className="h-4 w-1/2" />
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex-grow">
                         <Skeleton className="h-12 w-full" />
                     </CardContent>
-                    <CardFooter className="gap-2">
+                    <CardFooter>
                         <Skeleton className="h-10 w-36" />
                     </CardFooter>
                 </Card>
@@ -95,7 +95,7 @@ export default function RealisationsPage() {
         ) : projects.length > 0 ? (
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <Card key={project.id} className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              <Card key={project.id} className="flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
                 <div className="relative h-56 w-full bg-muted">
                     {project.image_url ? (
                         <Image
@@ -114,14 +114,14 @@ export default function RealisationsPage() {
                   <CardTitle className="font-headline text-xl">
                     {project.title}
                   </CardTitle>
-                  <div className="text-sm text-primary font-semibold">{project.category} - {project.year}</div>
+                  <div className="text-sm font-semibold text-primary">{project.category} - {project.year}</div>
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <CardDescription className="line-clamp-3">{project.description}</CardDescription>
                 </CardContent>
-                <CardFooter className="gap-2">
+                <CardFooter>
                   {project.report_url && (
-                    <Button asChild>
+                    <Button asChild size="lg">
                       <a href={project.report_url} target="_blank" rel="noopener noreferrer">
                         <Download className="mr-2 h-4 w-4" />
                         Télécharger le rapport
@@ -133,7 +133,7 @@ export default function RealisationsPage() {
             ))}
           </div>
         ) : (
-            <div className="text-center py-16 text-muted-foreground">
+            <div className="py-16 text-center text-muted-foreground">
                 <p>Aucun projet à afficher pour le moment.</p>
             </div>
         )}
