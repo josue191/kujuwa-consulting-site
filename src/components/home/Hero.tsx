@@ -4,51 +4,24 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { heroContent } from '@/lib/data';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from '@/components/ui/carousel';
-import Autoplay from "embla-carousel-autoplay";
-import { useRef } from 'react';
 
 export default function Hero() {
-  const plugin = useRef(
-    Autoplay({ delay: 5000, stopOnInteraction: true })
-  );
+  const heroImage = heroContent.images[0];
 
   return (
     <section className="relative h-[70vh] min-h-[500px] w-full md:h-[60vh]">
-      <Carousel 
-        plugins={[plugin.current]}
-        className="h-full w-full"
-        onMouseEnter={plugin.current.stop}
-        onMouseLeave={plugin.current.reset}
-        opts={{ loop: true }}
-      >
-        <CarouselContent className="h-full">
-           {heroContent.images.length > 0 ? (
-            heroContent.images.map((image, index) => (
-            <CarouselItem key={index} className="h-full">
-                 <Image
-                    src={image.imageUrl}
-                    alt={image.description}
-                    fill
-                    className="object-cover"
-                    data-ai-hint={image.imageHint}
-                    priority={index === 0}
-                />
-            </CarouselItem>
-            ))
-           ) : (
-             <CarouselItem className="h-full bg-muted" />
-           )}
-        </CarouselContent>
-         <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 text-white opacity-50 hover:opacity-100 disabled:opacity-30 md:left-8" />
-         <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 text-white opacity-50 hover:opacity-100 disabled:opacity-30 md:right-8" />
-      </Carousel>
+      {heroImage ? (
+        <Image
+          src={heroImage.imageUrl}
+          alt={heroImage.description}
+          fill
+          className="object-cover"
+          data-ai-hint={heroImage.imageHint}
+          priority
+        />
+      ) : (
+        <div className="absolute inset-0 bg-muted" />
+      )}
       
       <div className="absolute inset-0 bg-black/70" />
 
