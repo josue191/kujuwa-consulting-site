@@ -87,7 +87,6 @@ export default function RealisationsPage() {
                         <Skeleton className="h-12 w-full" />
                     </CardContent>
                     <CardFooter className="gap-2">
-                        <Skeleton className="h-10 w-24" />
                         <Skeleton className="h-10 w-36" />
                     </CardFooter>
                 </Card>
@@ -121,7 +120,6 @@ export default function RealisationsPage() {
                   <CardDescription className="line-clamp-3">{project.description}</CardDescription>
                 </CardContent>
                 <CardFooter className="gap-2">
-                  <Button variant="link" className="p-0">Voir détails <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   {project.report_url && (
                     <Button asChild>
                       <a href={project.report_url} target="_blank" rel="noopener noreferrer">
