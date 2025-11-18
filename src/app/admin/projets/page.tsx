@@ -8,7 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, Loader2, Trash2, Edit } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Loader2, Trash2, Edit, Download } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +61,7 @@ type Project = {
   description: string | null;
   created_at: string;
   image_url: string | null;
+  report_url: string | null;
 };
 
 const formSchema = z.object({
@@ -71,10 +72,18 @@ const formSchema = z.object({
   imageFile: z
     .any()
     .optional()
-    .refine((files) => !files || files?.length !== 1 || files?.[0]?.size <= 5000000, `La taille max est 5MB.`)
+    .refine((files) => !files || files?.length === 0 || files?.[0]?.size <= 5000000, `La taille max de l'image est 5MB.`)
     .refine(
-      (files) => !files || files?.length !== 1 || ['image/jpeg', 'image/png', 'image/webp'].includes(files?.[0]?.type),
-      "Formats supportés: .jpg, .png, .webp"
+      (files) => !files || files?.length === 0 || ['image/jpeg', 'image/png', 'image/webp'].includes(files?.[0]?.type),
+      "Formats d'image supportés: .jpg, .png, .webp"
+    ),
+  reportFile: z
+    .any()
+    .optional()
+    .refine((files) => !files || files?.length === 0 || files?.[0]?.size <= 10000000, `La taille max du rapport est 10MB.`)
+    .refine(
+      (files) => !files || files?.length === 0 || ['application/pdf'].includes(files?.[0]?.type),
+      "Seuls les fichiers PDF sont acceptés pour le rapport."
     ),
 });
 
@@ -130,6 +139,7 @@ export default function ProjectsPage() {
         description: project.description || '',
     });
     form.setValue('imageFile', undefined);
+    form.setValue('reportFile', undefined);
     setIsFormOpen(true);
   };
 
@@ -142,58 +152,70 @@ export default function ProjectsPage() {
         description: '',
     });
     form.setValue('imageFile', undefined);
+    form.setValue('reportFile', undefined);
     setIsFormOpen(true);
   };
   
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    let imageUrl = editingProject?.image_url || null;
-    const imageFile = values.imageFile?.[0];
+  const uploadFile = async (file: File, bucket: string, oldUrl?: string | null) => {
+    // 1. Delete old file if it exists
+    if (oldUrl) {
+        const oldFileName = oldUrl.split('/').pop();
+        if (oldFileName) {
+            await supabase.storage.from(bucket).remove([oldFileName]);
+        }
+    }
+    // 2. Upload new file
+    const fileName = `${uuidv4()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, file);
 
-    if (imageFile) {
-        if (editingProject?.image_url) {
-            const oldFileName = editingProject.image_url.split('/').pop();
-            if (oldFileName) {
-                await supabase.storage.from('project-images').remove([oldFileName]);
-            }
+    if (uploadError) {
+        toast({ variant: "destructive", title: `Erreur d'envoi du fichier (${bucket})`, description: uploadError.message });
+        throw uploadError;
+    }
+    // 3. Get public URL
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
+    return urlData.publicUrl;
+  };
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+        let imageUrl = editingProject?.image_url || null;
+        let reportUrl = editingProject?.report_url || null;
+
+        const imageFile = values.imageFile?.[0];
+        if (imageFile) {
+            imageUrl = await uploadFile(imageFile, 'project-images', editingProject?.image_url);
         }
         
-        const fileName = `${uuidv4()}-${imageFile.name}`;
-        const { error: uploadError } = await supabase.storage
-            .from('project-images')
-            .upload(fileName, imageFile);
-
-        if (uploadError) {
-            toast({ variant: "destructive", title: "Erreur d'envoi de l'image", description: uploadError.message });
-            return;
+        const reportFile = values.reportFile?.[0];
+        if (reportFile) {
+            reportUrl = await uploadFile(reportFile, 'project-reports', editingProject?.report_url);
         }
 
-        const { data: urlData } = supabase.storage.from('project-images').getPublicUrl(fileName);
-        imageUrl = urlData.publicUrl;
-    }
+        const projectData = {
+            title: values.title,
+            category: values.category,
+            year: values.year,
+            description: values.description,
+            image_url: imageUrl,
+            report_url: reportUrl,
+        };
 
-    const projectData = {
-        title: values.title,
-        category: values.category,
-        year: values.year,
-        description: values.description,
-        image_url: imageUrl,
-    };
+        const { error } = editingProject
+            ? await supabase.from('projects').update(projectData).match({ id: editingProject.id })
+            : await supabase.from('projects').insert([projectData]);
 
-    let response;
-    if (editingProject) {
-      response = await supabase.from('projects').update(projectData).match({ id: editingProject.id });
-    } else {
-      response = await supabase.from('projects').insert([projectData]);
-    }
+        if (error) throw error;
+        
+        toast({ title: `Projet ${editingProject ? 'mis à jour' : 'ajouté'}`, description: `Le projet a été enregistré.` });
+        setIsFormOpen(false);
+        fetchProjects();
 
-    const { error } = response;
-
-    if (error) {
-      toast({ variant: 'destructive', title: "Erreur lors de l'enregistrement", description: error.message });
-    } else {
-      toast({ title: `Projet ${editingProject ? 'mis à jour' : 'ajouté'}`, description: `Le projet a été enregistré.` });
-      setIsFormOpen(false);
-      fetchProjects();
+    } catch (error: any) {
+        console.error("Submit error:", error);
+        toast({ variant: 'destructive', title: "Erreur lors de l'enregistrement", description: error.message });
     }
   }
   
@@ -204,6 +226,13 @@ export default function ProjectsPage() {
         const fileName = projectToDelete.image_url.split('/').pop();
         if (fileName) {
             await supabase.storage.from('project-images').remove([fileName]);
+        }
+    }
+
+    if (projectToDelete.report_url) {
+        const fileName = projectToDelete.report_url.split('/').pop();
+        if (fileName) {
+            await supabase.storage.from('project-reports').remove([fileName]);
         }
     }
     
@@ -279,30 +308,28 @@ export default function ProjectsPage() {
                 <DialogDescription>{editingProject ? "Mettez à jour les informations." : "Remplissez les informations."}</DialogDescription>
             </DialogHeader>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-6">
                   <FormField control={form.control} name="title" render={({ field }) => (
                       <FormItem><FormLabel>Titre du projet</FormLabel><FormControl><Input placeholder="Titre..." {...field} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="category" render={({ field }) => (
-                        <FormItem><FormLabel>Catégorie</FormLabel><FormControl><Input placeholder="Ex: Étude" {...(field as any)} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Catégorie</FormLabel><FormControl><Input placeholder="Ex: Étude" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="year" render={({ field }) => (
-                        <FormItem><FormLabel>Année</FormLabel><FormControl><Input type="number" placeholder="Ex: 2024" {...(field as any)} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Année</FormLabel><FormControl><Input type="number" placeholder="Ex: 2024" {...field} value={field.value ?? new Date().getFullYear()} /></FormControl><FormMessage /></FormItem>
                     )}/>
                   </div>
                   <FormField control={form.control} name="description" render={({ field }) => (
-                    <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Description..." className="min-h-[100px]" {...(field as any)} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Description..." className="min-h-[100px]" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField
                       control={form.control}
                       name="imageFile"
                       render={({ field }) => (
                           <FormItem>
-                          <FormLabel>Image du projet (JPG, PNG, WebP - 5MB max)</FormLabel>
-                          <FormControl>
-                              <Input type="file" accept="image/png, image/jpeg, image/webp" {...form.register("imageFile")} />
-                          </FormControl>
+                          <FormLabel>Image du projet (JPG, PNG - 5MB max)</FormLabel>
+                          <FormControl><Input type="file" accept="image/png, image/jpeg, image/webp" {...form.register("imageFile")} /></FormControl>
                           <FormMessage />
                           </FormItem>
                       )}
@@ -313,7 +340,31 @@ export default function ProjectsPage() {
                         <Image src={editingProject.image_url} alt={editingProject.title} width={120} height={80} className="rounded-md object-cover" />
                     </div>
                   )}
-                  <DialogFooter className="pt-4 border-t">
+                  <FormField
+                      control={form.control}
+                      name="reportFile"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Rapport du projet (PDF - 10MB max)</FormLabel>
+                          <FormControl><Input type="file" accept=".pdf" {...form.register("reportFile")} /></FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                  />
+                  {editingProject?.report_url && (
+                    <div className="space-y-2">
+                        <Label>Rapport actuel</Label>
+                        <div className="flex items-center gap-2">
+                           <Button asChild variant="outline" size="sm">
+                                <a href={editingProject.report_url} target="_blank" rel="noopener noreferrer">
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Voir le rapport
+                                </a>
+                           </Button>
+                        </div>
+                    </div>
+                  )}
+                  <DialogFooter className="pt-4 border-t sticky bottom-0 bg-background py-4">
                       <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annuler</Button>
                       <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Enregistrement...' : 'Enregistrer'}</Button>
                   </DialogFooter>
@@ -324,12 +375,10 @@ export default function ProjectsPage() {
 
       <AlertDialog open={!!projectToDelete} onOpenChange={() => setProjectToDelete(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Supprimer ce projet ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible et supprimera le projet et son image associée.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader><AlertDialogTitle>Supprimer ce projet ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible et supprimera le projet, son image et son rapport associés.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   );
 }
-
-    
