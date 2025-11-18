@@ -7,12 +7,10 @@ import {
   Users,
   BarChart,
   FileText,
-  Settings,
   Building,
   LogOut,
   Mail,
   FilePlus2,
-  Loader2,
   Presentation,
 } from 'lucide-react';
 import {
@@ -108,12 +106,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </SidebarContent>
           <SidebarFooter>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton>
-                  <Settings />
-                  Paramètres
-                </SidebarMenuButton>
-              </SidebarMenuItem>
               <SidebarMenuItem>
                  <SidebarMenuButton onClick={handleLogout}>
                     <LogOut />
