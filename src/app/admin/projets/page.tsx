@@ -39,6 +39,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { v4 as uuidv4 } from 'uuid';
 import {
     Form,
     FormControl,
@@ -50,6 +51,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
+import Image from 'next/image';
+import { Label } from '@/components/ui/label';
 
 type Project = {
   id: string;
@@ -58,14 +61,23 @@ type Project = {
   year: number;
   description: string;
   created_at: string;
+  image_url: string | null;
 };
 
-// Simplified schema without file uploads
 const formSchema = z.object({
   title: z.string().min(2, { message: 'Le titre doit contenir au moins 2 caractères.' }),
   category: z.string().min(2, { message: 'La catégorie est requise.' }),
   year: z.coerce.number().min(1900, 'Année invalide').max(new Date().getFullYear() + 1, 'Année invalide'),
   description: z.string().optional(),
+  imageFile: z
+    .any()
+    .optional()
+    .refine((files) => !files || files?.length === 1, "Vous ne pouvez téléverser qu'un seul fichier.")
+    .refine((files) => !files || files?.[0]?.size <= 5000000, `La taille max est 5MB.`)
+    .refine(
+      (files) => !files || ['image/jpeg', 'image/png', 'image/webp'].includes(files?.[0]?.type),
+      "Formats supportés: .jpg, .png, .webp"
+    ),
 });
 
 export default function ProjectsPage() {
@@ -96,7 +108,6 @@ export default function ProjectsPage() {
       .order('year', { ascending: false });
 
     if (error) {
-      console.error('Error fetching projects:', error);
       toast({
         variant: 'destructive',
         title: 'Erreur de chargement',
@@ -120,6 +131,7 @@ export default function ProjectsPage() {
         year: project.year || new Date().getFullYear(),
         description: project.description || '',
     });
+    form.setValue('imageFile', undefined);
     setIsFormOpen(true);
   };
 
@@ -131,17 +143,48 @@ export default function ProjectsPage() {
         year: new Date().getFullYear(),
         description: '',
     });
+    form.setValue('imageFile', undefined);
     setIsFormOpen(true);
   };
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    let imageUrl = editingProject?.image_url || null;
+    const imageFile = values.imageFile?.[0];
+
+    // 1. Gérer l'upload de l'image
+    if (imageFile) {
+        // Si on édite et qu'il y a déjà une image, on la supprime
+        if (editingProject?.image_url) {
+            const oldFileName = editingProject.image_url.split('/').pop();
+            if (oldFileName) {
+                await supabase.storage.from('project-images').remove([oldFileName]);
+            }
+        }
+        
+        const fileName = `${uuidv4()}-${imageFile.name}`;
+        const { error: uploadError } = await supabase.storage
+            .from('project-images')
+            .upload(fileName, imageFile);
+
+        if (uploadError) {
+            toast({ variant: "destructive", title: "Erreur d'envoi de l'image", description: uploadError.message });
+            return;
+        }
+
+        const { data: urlData } = supabase.storage.from('project-images').getPublicUrl(fileName);
+        imageUrl = urlData.publicUrl;
+    }
+
+    // 2. Préparer les données pour la BDD
     const projectData = {
         title: values.title,
         category: values.category,
         year: values.year,
         description: values.description,
+        image_url: imageUrl,
     };
 
+    // 3. Insérer ou Mettre à jour dans la BDD
     let response;
     if (editingProject) {
       response = await supabase.from('projects').update(projectData).match({ id: editingProject.id });
@@ -153,29 +196,38 @@ export default function ProjectsPage() {
 
     if (error) {
       toast({ variant: 'destructive', title: "Erreur lors de l'enregistrement", description: error.message });
-      console.error("Submit error:", error);
     } else {
       toast({ title: `Projet ${editingProject ? 'mis à jour' : 'ajouté'}`, description: `Le projet a été enregistré.` });
       setIsFormOpen(false);
-      fetchProjects();
+      fetchProjects(); // Recharger les projets
     }
   }
   
   const handleDelete = async () => {
     if (!projectToDelete) return;
 
-    try {
-      const { error } = await supabase.from('projects').delete().match({ id: projectToDelete.id });
-      if (error) throw error;
-      
-      toast({ title: 'Projet supprimé', description: "Le projet a été supprimé." });
-      setProjects(projects.filter(p => p.id !== projectToDelete.id));
-
-    } catch (error: any) {
-       toast({ variant: 'destructive', title: 'Erreur de suppression', description: error.message });
-    } finally {
-        setProjectToDelete(null);
+    // Supprimer l'image du storage si elle existe
+    if (projectToDelete.image_url) {
+        const fileName = projectToDelete.image_url.split('/').pop();
+        if (fileName) {
+            const { error: storageError } = await supabase.storage.from('project-images').remove([fileName]);
+            if (storageError) {
+                toast({ variant: 'destructive', title: "Erreur de suppression de l'image", description: storageError.message });
+            }
+        }
     }
+
+    // Supprimer le projet de la BDD
+    const { error } = await supabase.from('projects').delete().match({ id: projectToDelete.id });
+    
+    if (error) {
+       toast({ variant: 'destructive', title: 'Erreur de suppression', description: error.message });
+    } else {
+       toast({ title: 'Projet supprimé', description: "Le projet a été supprimé." });
+       setProjects(projects.filter(p => p.id !== projectToDelete.id));
+    }
+    
+    setProjectToDelete(null);
   };
 
   return (
@@ -190,6 +242,7 @@ export default function ProjectsPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Image</TableHead>
               <TableHead>Titre</TableHead>
               <TableHead>Catégorie</TableHead>
               <TableHead>Année</TableHead>
@@ -198,10 +251,17 @@ export default function ProjectsPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /></TableCell></TableRow>
             ) : projects.length > 0 ? (
               projects.map((project) => (
                 <TableRow key={project.id}>
+                  <TableCell>
+                    {project.image_url ? (
+                      <Image src={project.image_url} alt={project.title} width={64} height={40} className="rounded-md object-cover h-10 w-16" />
+                    ) : (
+                      <div className="h-10 w-16 bg-muted rounded-md flex items-center justify-center text-xs text-muted-foreground">?</div>
+                    )}
+                  </TableCell>
                   <TableCell className="font-medium">{project.title}</TableCell>
                   <TableCell>{project.category}</TableCell>
                   <TableCell>{project.year}</TableCell>
@@ -217,7 +277,7 @@ export default function ProjectsPage() {
                 </TableRow>
               ))
             ) : (
-              <TableRow><TableCell colSpan={4} className="text-center h-24">Aucun projet pour le moment.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center h-24">Aucun projet pour le moment.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -247,6 +307,25 @@ export default function ProjectsPage() {
                           <FormField control={form.control} name="description" render={({ field }) => (
                             <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Description..." className="min-h-[150px]" {...field} /></FormControl><FormMessage /></FormItem>
                           )}/>
+                          <FormField
+                              control={form.control}
+                              name="imageFile"
+                              render={({ field }) => (
+                                  <FormItem>
+                                  <FormLabel>Image du projet (JPG, PNG, WebP - 5MB max)</FormLabel>
+                                  <FormControl>
+                                      <Input type="file" accept="image/png, image/jpeg, image/webp" {...form.register("imageFile")} />
+                                  </FormControl>
+                                  <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                          {editingProject?.image_url && (
+                            <div className="space-y-2">
+                                <Label>Image actuelle</Label>
+                                <Image src={editingProject.image_url} alt={editingProject.title} width={120} height={80} className="rounded-md object-cover" />
+                            </div>
+                          )}
                       </div>
                     </ScrollArea>
                   <DialogFooter className="mt-4 pt-4 border-t">
@@ -260,7 +339,7 @@ export default function ProjectsPage() {
 
       <AlertDialog open={!!projectToDelete} onOpenChange={() => setProjectToDelete(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Supprimer ce projet ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible et supprimera le projet.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader><AlertDialogTitle>Supprimer ce projet ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible et supprimera le projet et son image associée.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
