@@ -135,32 +135,29 @@ export default function ProjectsPage() {
   };
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      const projectData = {
-          title: values.title,
-          category: values.category,
-          year: values.year,
-          description: values.description,
-      };
+    const projectData = {
+        title: values.title,
+        category: values.category,
+        year: values.year,
+        description: values.description,
+    };
 
-      let error;
-      if (editingProject) {
-        const { error: updateError } = await supabase.from('projects').update(projectData).match({ id: editingProject.id });
-        error = updateError;
-      } else {
-        const { error: insertError } = await supabase.from('projects').insert([projectData]);
-        error = insertError;
-      }
+    let response;
+    if (editingProject) {
+      response = await supabase.from('projects').update(projectData).match({ id: editingProject.id });
+    } else {
+      response = await supabase.from('projects').insert([projectData]);
+    }
 
-      if (error) throw error;
+    const { error } = response;
 
+    if (error) {
+      toast({ variant: 'destructive', title: "Erreur lors de l'enregistrement", description: error.message });
+      console.error("Submit error:", error);
+    } else {
       toast({ title: `Projet ${editingProject ? 'mis à jour' : 'ajouté'}`, description: `Le projet a été enregistré.` });
       setIsFormOpen(false);
       fetchProjects();
-
-    } catch (error: any) {
-        console.error("Submit error:", error);
-        toast({ variant: 'destructive', title: "Erreur lors de l'enregistrement", description: error.message });
     }
   }
   
