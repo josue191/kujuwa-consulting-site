@@ -124,7 +124,7 @@ export default function RealisationsPage() {
                     <Button asChild>
                       <a href={project.report_url} target="_blank" rel="noopener noreferrer">
                         <Download className="mr-2 h-4 w-4" />
-                        Rapport
+                        Télécharger le rapport
                       </a>
                     </Button>
                   )}
