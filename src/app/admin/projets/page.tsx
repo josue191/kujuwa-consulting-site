@@ -49,7 +49,6 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
@@ -57,25 +56,24 @@ import { Label } from '@/components/ui/label';
 type Project = {
   id: string;
   title: string;
-  category: string;
-  year: number;
-  description: string;
+  category: string | null;
+  year: number | null;
+  description: string | null;
   created_at: string;
   image_url: string | null;
 };
 
 const formSchema = z.object({
   title: z.string().min(2, { message: 'Le titre doit contenir au moins 2 caractères.' }),
-  category: z.string().min(2, { message: 'La catégorie est requise.' }),
-  year: z.coerce.number().min(1900, 'Année invalide').max(new Date().getFullYear() + 1, 'Année invalide'),
+  category: z.string().optional(),
+  year: z.coerce.number().optional(),
   description: z.string().optional(),
   imageFile: z
     .any()
     .optional()
-    .refine((files) => !files || files?.length === 1, "Vous ne pouvez téléverser qu'un seul fichier.")
-    .refine((files) => !files || files?.[0]?.size <= 5000000, `La taille max est 5MB.`)
+    .refine((files) => !files || files?.length !== 1 || files?.[0]?.size <= 5000000, `La taille max est 5MB.`)
     .refine(
-      (files) => !files || ['image/jpeg', 'image/png', 'image/webp'].includes(files?.[0]?.type),
+      (files) => !files || files?.length !== 1 || ['image/jpeg', 'image/png', 'image/webp'].includes(files?.[0]?.type),
       "Formats supportés: .jpg, .png, .webp"
     ),
 });
@@ -151,9 +149,7 @@ export default function ProjectsPage() {
     let imageUrl = editingProject?.image_url || null;
     const imageFile = values.imageFile?.[0];
 
-    // 1. Gérer l'upload de l'image
     if (imageFile) {
-        // Si on édite et qu'il y a déjà une image, on la supprime
         if (editingProject?.image_url) {
             const oldFileName = editingProject.image_url.split('/').pop();
             if (oldFileName) {
@@ -175,7 +171,6 @@ export default function ProjectsPage() {
         imageUrl = urlData.publicUrl;
     }
 
-    // 2. Préparer les données pour la BDD
     const projectData = {
         title: values.title,
         category: values.category,
@@ -184,7 +179,6 @@ export default function ProjectsPage() {
         image_url: imageUrl,
     };
 
-    // 3. Insérer ou Mettre à jour dans la BDD
     let response;
     if (editingProject) {
       response = await supabase.from('projects').update(projectData).match({ id: editingProject.id });
@@ -199,25 +193,20 @@ export default function ProjectsPage() {
     } else {
       toast({ title: `Projet ${editingProject ? 'mis à jour' : 'ajouté'}`, description: `Le projet a été enregistré.` });
       setIsFormOpen(false);
-      fetchProjects(); // Recharger les projets
+      fetchProjects();
     }
   }
   
   const handleDelete = async () => {
     if (!projectToDelete) return;
 
-    // Supprimer l'image du storage si elle existe
     if (projectToDelete.image_url) {
         const fileName = projectToDelete.image_url.split('/').pop();
         if (fileName) {
-            const { error: storageError } = await supabase.storage.from('project-images').remove([fileName]);
-            if (storageError) {
-                toast({ variant: 'destructive', title: "Erreur de suppression de l'image", description: storageError.message });
-            }
+            await supabase.storage.from('project-images').remove([fileName]);
         }
     }
-
-    // Supprimer le projet de la BDD
+    
     const { error } = await supabase.from('projects').delete().match({ id: projectToDelete.id });
     
     if (error) {
@@ -290,45 +279,41 @@ export default function ProjectsPage() {
                 <DialogDescription>{editingProject ? "Mettez à jour les informations." : "Remplissez les informations."}</DialogDescription>
             </DialogHeader>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)}>
-                  <ScrollArea className="h-[60vh]">
-                      <div className="space-y-4 py-4 pr-6">
-                          <FormField control={form.control} name="title" render={({ field }) => (
-                              <FormItem><FormLabel>Titre du projet</FormLabel><FormControl><Input placeholder="Titre..." {...field} /></FormControl><FormMessage /></FormItem>
-                          )}/>
-                          <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="category" render={({ field }) => (
-                                <FormItem><FormLabel>Catégorie</FormLabel><FormControl><Input placeholder="Ex: Étude" {...field} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="year" render={({ field }) => (
-                                <FormItem><FormLabel>Année</FormLabel><FormControl><Input type="number" placeholder="Ex: 2024" {...field} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                          </div>
-                          <FormField control={form.control} name="description" render={({ field }) => (
-                            <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Description..." className="min-h-[150px]" {...field} /></FormControl><FormMessage /></FormItem>
-                          )}/>
-                          <FormField
-                              control={form.control}
-                              name="imageFile"
-                              render={({ field }) => (
-                                  <FormItem>
-                                  <FormLabel>Image du projet (JPG, PNG, WebP - 5MB max)</FormLabel>
-                                  <FormControl>
-                                      <Input type="file" accept="image/png, image/jpeg, image/webp" {...form.register("imageFile")} />
-                                  </FormControl>
-                                  <FormMessage />
-                                  </FormItem>
-                              )}
-                          />
-                          {editingProject?.image_url && (
-                            <div className="space-y-2">
-                                <Label>Image actuelle</Label>
-                                <Image src={editingProject.image_url} alt={editingProject.title} width={120} height={80} className="rounded-md object-cover" />
-                            </div>
-                          )}
-                      </div>
-                    </ScrollArea>
-                  <DialogFooter className="mt-4 pt-4 border-t">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                  <FormField control={form.control} name="title" render={({ field }) => (
+                      <FormItem><FormLabel>Titre du projet</FormLabel><FormControl><Input placeholder="Titre..." {...field} /></FormControl><FormMessage /></FormItem>
+                  )}/>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="category" render={({ field }) => (
+                        <FormItem><FormLabel>Catégorie</FormLabel><FormControl><Input placeholder="Ex: Étude" {...(field as any)} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="year" render={({ field }) => (
+                        <FormItem><FormLabel>Année</FormLabel><FormControl><Input type="number" placeholder="Ex: 2024" {...(field as any)} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                  </div>
+                  <FormField control={form.control} name="description" render={({ field }) => (
+                    <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Description..." className="min-h-[100px]" {...(field as any)} /></FormControl><FormMessage /></FormItem>
+                  )}/>
+                  <FormField
+                      control={form.control}
+                      name="imageFile"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Image du projet (JPG, PNG, WebP - 5MB max)</FormLabel>
+                          <FormControl>
+                              <Input type="file" accept="image/png, image/jpeg, image/webp" {...form.register("imageFile")} />
+                          </FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                  />
+                  {editingProject?.image_url && (
+                    <div className="space-y-2">
+                        <Label>Image actuelle</Label>
+                        <Image src={editingProject.image_url} alt={editingProject.title} width={120} height={80} className="rounded-md object-cover" />
+                    </div>
+                  )}
+                  <DialogFooter className="pt-4 border-t">
                       <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annuler</Button>
                       <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Enregistrement...' : 'Enregistrer'}</Button>
                   </DialogFooter>
@@ -346,3 +331,5 @@ export default function ProjectsPage() {
     </div>
   );
 }
+
+    
