@@ -51,13 +51,13 @@ export default function RealisationsPage() {
         });
         console.error(error);
       } else {
-        setProjects(data);
+        setProjects(data || []);
       }
       setIsLoading(false);
     };
 
-    // fetchProjects(); // Temporarily disabled
-  }, []);
+    fetchProjects();
+  }, [supabase, toast]);
 
   return (
     <>
@@ -97,16 +97,20 @@ export default function RealisationsPage() {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
               <Card key={project.id} className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                {project.image_url && (
-                  <div className="relative h-56 w-full bg-muted">
-                    <Image
-                      src={project.image_url}
-                      alt={project.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                )}
+                <div className="relative h-56 w-full bg-muted">
+                    {project.image_url ? (
+                        <Image
+                        src={project.image_url}
+                        alt={project.title}
+                        fill
+                        className="object-cover"
+                        />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-muted">
+                            <ArrowRight className="h-20 w-20 text-muted-foreground/30" />
+                        </div>
+                    )}
+                </div>
                 <CardHeader>
                   <CardTitle className="font-headline text-xl">
                     {project.title}
