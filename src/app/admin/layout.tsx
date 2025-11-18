@@ -32,7 +32,6 @@ import type { User } from '@supabase/supabase-js';
 
 const navItems = [
   { href: '/admin', icon: BarChart, label: 'Tableau de bord' },
-  { href: '/admin/contenu', icon: FileText, label: 'Contenu' },
   { href: '/admin/offres', icon: FilePlus2, label: 'Offres d\'emploi' },
   { href: '/admin/candidatures', icon: Briefcase, label: 'Candidatures' },
   { href: '/admin/messages', icon: Mail, label: 'Messages' },
