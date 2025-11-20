@@ -20,16 +20,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -52,6 +42,7 @@ import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
 import { saveTeamMember, deleteTeamMember } from '@/lib/actions/team';
+import DeleteConfirmationDialog from '@/components/admin/DeleteConfirmationDialog';
 
 
 type TeamMember = {
@@ -351,23 +342,17 @@ export default function TeamPage() {
       )}
 
       {memberToDelete && (
-        <AlertDialog open={!!memberToDelete} onOpenChange={() => setMemberToDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer ce membre ?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Cette action est irréversible et supprimera sa photo et ses informations.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} disabled={isPending} className="bg-destructive hover:bg-destructive/90">
-                 {isPending ? 'Suppression...' : 'Supprimer'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <DeleteConfirmationDialog
+            isOpen={!!memberToDelete}
+            onOpenChange={() => setMemberToDelete(null)}
+            onConfirm={handleDelete}
+            title="Êtes-vous sûr de vouloir supprimer ce membre ?"
+            description="Cette action est irréversible et supprimera sa photo et ses informations."
+            isPending={isPending}
+        />
       )}
     </div>
   );
 }
+
+    
