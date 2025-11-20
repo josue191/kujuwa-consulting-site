@@ -1,5 +1,3 @@
-'use client';
-import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import PageHeader from '@/components/shared/PageHeader';
 import {
@@ -13,10 +11,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { realisationsContent } from '@/lib/data';
-import { Download, Search, ArrowRight, Loader2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Download, Search, ArrowRight } from 'lucide-react';
+import { createClient } from '@/lib/supabase/server';
+import SearchForm from '@/components/realisations/SearchForm';
 
 type Project = {
   id: string;
@@ -29,51 +26,29 @@ type Project = {
   created_at: string;
 };
 
-export default function RealisationsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+export default async function RealisationsPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | undefined };
+}) {
   const supabase = createClient();
-  const { toast } = useToast();
+  const searchTerm = searchParams?.query || '';
 
-  useEffect(() => {
-    const fetchProjects = async () => {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('year', { ascending: false });
+  let query = supabase
+    .from('projects')
+    .select('*')
+    .order('year', { ascending: false });
 
-      if (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Erreur',
-          description: 'Impossible de charger les projets.',
-        });
-        console.error('Error fetching projects:', error.message);
-      } else {
-        setProjects(data || []);
-        setFilteredProjects(data || []);
-      }
-      setIsLoading(false);
-    };
+  if (searchTerm) {
+    query = query.or(`title.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
+  }
 
-    fetchProjects();
-  }, [supabase, toast]);
+  const { data: projects, error } = await query;
 
-  useEffect(() => {
-    const results = projects.filter(project => {
-        const term = searchTerm.toLowerCase();
-        return (
-            project.title.toLowerCase().includes(term) ||
-            (project.category && project.category.toLowerCase().includes(term)) ||
-            (project.description && project.description.toLowerCase().includes(term))
-        );
-    });
-    setFilteredProjects(results);
-  }, [searchTerm, projects]);
-
+  if (error) {
+    console.error('Error fetching projects:', error.message);
+    // You might want to render an error state here
+  }
 
   return (
     <>
@@ -83,38 +58,12 @@ export default function RealisationsPage() {
       />
       <div className="container mx-auto max-w-7xl px-4 py-12 sm:py-16">
         <div className="mb-12 flex flex-col items-center gap-4 md:flex-row">
-          <div className="relative w-full md:flex-grow">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-            <Input 
-                placeholder="Rechercher par projet, domaine..." 
-                className="pl-10" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          <SearchForm placeholder="Rechercher par projet, domaine..." />
         </div>
 
-        {isLoading ? (
+        {projects && projects.length > 0 ? (
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-             {Array.from({ length: 3 }).map((_, index) => (
-                <Card key={index} className="flex flex-col">
-                    <Skeleton className="h-56 w-full" />
-                    <CardHeader>
-                        <Skeleton className="h-6 w-3/4" />
-                        <Skeleton className="h-4 w-1/2" />
-                    </CardHeader>
-                    <CardContent className="flex-grow">
-                        <Skeleton className="h-12 w-full" />
-                    </CardContent>
-                    <CardFooter>
-                        <Skeleton className="h-10 w-36" />
-                    </CardFooter>
-                </Card>
-             ))}
-          </div>
-        ) : filteredProjects.length > 0 ? (
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {filteredProjects.map((project) => (
+            {projects.map((project) => (
               <Card key={project.id} className="flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
                 <div className="relative h-56 w-full bg-muted">
                     {project.image_url ? (
@@ -154,7 +103,12 @@ export default function RealisationsPage() {
           </div>
         ) : (
             <div className="py-16 text-center text-muted-foreground">
-                <p>Aucun projet ne correspond à votre recherche "{searchTerm}".</p>
+                <p>
+                  {searchTerm 
+                    ? `Aucun projet ne correspond à votre recherche "${searchTerm}".`
+                    : "Aucun projet n'a été trouvé."
+                  }
+                </p>
             </div>
         )}
       </div>
