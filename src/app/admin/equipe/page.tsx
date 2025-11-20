@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, PlusCircle, Loader2, Trash2, Edit } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -40,7 +40,6 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { v4 as uuidv4 } from 'uuid';
 import {
     Form,
     FormControl,
@@ -52,7 +51,8 @@ import {
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { saveTeamMember, deleteTeamMember } from '@/lib/actions/team';
+
 
 type TeamMember = {
   id: string;
@@ -68,10 +68,10 @@ const formSchema = z.object({
   imageFile: z
     .any()
     .optional()
-    .refine((files) => !files || files?.length === 1, "Vous ne pouvez téléverser qu'un seul fichier.")
-    .refine((files) => !files || files?.[0]?.size <= 2000000, `La taille max est 2MB.`)
+    .refine((files) => !files || files?.length === 0 || files?.length === 1, "Vous ne pouvez téléverser qu'un seul fichier.")
+    .refine((files) => !files || files?.length === 0 || files?.[0]?.size <= 2000000, `La taille max est 2MB.`)
     .refine(
-      (files) => !files || ['image/jpeg', 'image/png', 'image/webp'].includes(files?.[0]?.type),
+      (files) => !files || files?.length === 0 || ['image/jpeg', 'image/png', 'image/webp'].includes(files?.[0]?.type),
       "Formats supportés: .jpg, .png, .webp"
     ),
 });
@@ -82,6 +82,7 @@ export default function TeamPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const supabase = createClient();
   const { toast } = useToast();
@@ -94,29 +95,59 @@ export default function TeamPage() {
     },
   });
   
-  const fetchTeamMembers = async () => {
-    setIsLoading(true);
-    const { data, error } = await supabase
-      .from('team_members')
-      .select('*')
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching team members:', error.message);
-      toast({
-        variant: 'destructive',
-        title: 'Erreur de chargement',
-        description: `Une erreur est survenue: ${error.message}`,
-      });
-    } else {
-      setTeamMembers(data || []);
-    }
-    setIsLoading(false);
-  };
-
   useEffect(() => {
+    const fetchTeamMembers = async () => {
+        setIsLoading(true);
+        const { data, error } = await supabase
+        .from('team_members')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+        if (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Erreur de chargement',
+                description: `Une erreur est survenue: ${error.message}`,
+            });
+        } else {
+            setTeamMembers(data || []);
+        }
+        setIsLoading(false);
+    };
     fetchTeamMembers();
   }, [supabase, toast]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('team_members_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_members' },
+        (payload) => {
+           // Re-fetch data on any change
+           const fetchTeamMembers = async () => {
+                const { data, error } = await supabase
+                .from('team_members')
+                .select('*')
+                .order('created_at', { ascending: true });
+
+                if (error) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Erreur de synchronisation',
+                        description: `Impossible de rafraîchir les données: ${error.message}`,
+                    });
+                } else {
+                    setTeamMembers(data || []);
+                }
+            };
+            fetchTeamMembers();
+        }
+      ).subscribe();
+  
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, toast]);
+
 
   const handleEdit = (member: TeamMember) => {
     setEditingMember(member);
@@ -124,6 +155,7 @@ export default function TeamPage() {
         name: member.name,
         role: member.role,
     });
+    form.setValue('imageFile', undefined);
     setIsFormOpen(true);
   };
 
@@ -133,106 +165,46 @@ export default function TeamPage() {
         name: '',
         role: '',
     });
+     form.setValue('imageFile', undefined);
     setIsFormOpen(true);
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    let imageUrl = editingMember?.image_url || null;
+    startTransition(async () => {
+        const formData = new FormData();
+        if (editingMember) {
+            formData.append('id', editingMember.id);
+            formData.append('current_image_url', editingMember.image_url || '');
+        }
+        formData.append('name', values.name);
+        formData.append('role', values.role);
 
-    const imageFile = values.imageFile?.[0];
-    if (imageFile) {
-        // Supprimer l'ancienne image si elle existe et si on edite
-        if (editingMember?.image_url) {
-            const oldFileName = editingMember.image_url.split('/').pop();
-            if (oldFileName) {
-                await supabase.storage.from('team-images').remove([oldFileName]);
-            }
+        if (values.imageFile?.[0]) {
+            formData.append('imageFile', values.imageFile[0]);
         }
 
-        const fileName = `${uuidv4()}-${imageFile.name}`;
-        const { error: uploadError } = await supabase.storage
-            .from('team-images')
-            .upload(fileName, imageFile);
+        const result = await saveTeamMember(formData);
 
-        if (uploadError) {
-            toast({ variant: "destructive", title: "Erreur d'envoi de l'image", description: uploadError.message });
-            return;
+        if (result.success) {
+            toast({ title: 'Succès', description: result.message });
+            setIsFormOpen(false);
+        } else {
+            toast({ variant: 'destructive', title: 'Erreur', description: result.message });
         }
-
-        const { data: urlData } = supabase.storage.from('team-images').getPublicUrl(fileName);
-        imageUrl = urlData.publicUrl;
-    } else if (!editingMember) {
-        // if creating a new member without an image, it's an issue unless we allow it.
-        // For now, let's assume image is not mandatory on creation but good to have
-    }
-
-    const memberData = {
-        name: values.name,
-        role: values.role,
-        image_url: imageUrl,
-    };
-
-    let error;
-    if (editingMember) {
-      const { error: updateError } = await supabase
-        .from('team_members')
-        .update(memberData)
-        .match({ id: editingMember.id });
-      error = updateError;
-    } else {
-      const { error: insertError } = await supabase
-        .from('team_members')
-        .insert([memberData]);
-      error = insertError;
-    }
-
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: "Erreur lors de l'enregistrement",
-        description: error.message,
-      });
-    } else {
-      toast({
-        title: `Membre ${editingMember ? 'mis à jour' : 'ajouté'}`,
-        description: `Le membre de l'équipe a été enregistré avec succès.`,
-      });
-      setIsFormOpen(false);
-      fetchTeamMembers();
-    }
+    });
   }
   
   const handleDelete = async () => {
     if (!memberToDelete) return;
-
-    // Delete image from storage
-    if (memberToDelete.image_url) {
-        const fileName = memberToDelete.image_url.split('/').pop();
-        if (fileName) {
-            await supabase.storage.from('team-images').remove([fileName]);
-        }
-    }
-
-    // Delete record from table
-    const { error } = await supabase
-      .from('team_members')
-      .delete()
-      .match({ id: memberToDelete.id });
-
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur de suppression',
-        description: "Le membre n'a pas pu être supprimé.",
-      });
-    } else {
-      toast({
-        title: 'Membre supprimé',
-        description: "Le membre de l'équipe a été supprimé avec succès.",
-      });
-      setTeamMembers(teamMembers.filter(member => member.id !== memberToDelete.id));
-    }
-    setMemberToDelete(null);
+    startTransition(async () => {
+      const result = await deleteTeamMember(memberToDelete);
+      if (result.success) {
+        toast({ title: 'Succès', description: result.message });
+      } else {
+        toast({ variant: 'destructive', title: 'Erreur', description: result.message });
+      }
+      setMemberToDelete(null);
+    });
   };
 
   return (
@@ -320,58 +292,56 @@ export default function TeamPage() {
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)}>
-                        <div className="space-y-4 py-4">
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Nom complet</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Ex: Jane Doe" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="role"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Rôle / Poste</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Ex: Directrice Générale" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="imageFile"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Photo (JPG, PNG, WebP - 2MB max)</FormLabel>
-                                    <FormControl>
-                                        <Input type="file" accept="image/png, image/jpeg, image/webp" {...form.register("imageFile")} />
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            {editingMember?.image_url && (
-                            <div className="space-y-2">
-                                <Label>Photo actuelle</Label>
-                                <Image src={editingMember.image_url} alt={editingMember.name} width={80} height={80} className="rounded-md object-cover" />
-                            </div>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                        <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Nom complet</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Ex: Jane Doe" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
                             )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="role"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Rôle / Poste</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Ex: Directrice Générale" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="imageFile"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Photo (JPG, PNG, WebP - 2MB max)</FormLabel>
+                                <FormControl>
+                                    <Input type="file" accept="image/png, image/jpeg, image/webp" {...form.register("imageFile")} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        {editingMember?.image_url && (
+                        <div className="space-y-2">
+                            <Label>Photo actuelle</Label>
+                            <Image src={editingMember.image_url} alt={editingMember.name} width={80} height={80} className="rounded-md object-cover" />
                         </div>
-                        <DialogFooter className="pt-4">
+                        )}
+                        <DialogFooter>
                             <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annuler</Button>
-                            <Button type="submit" disabled={form.formState.isSubmitting}>
-                                {form.formState.isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                            <Button type="submit" disabled={isPending}>
+                                {isPending ? 'Enregistrement...' : 'Enregistrer'}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -391,8 +361,8 @@ export default function TeamPage() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-                Supprimer
+              <AlertDialogAction onClick={handleDelete} disabled={isPending} className="bg-destructive hover:bg-destructive/90">
+                 {isPending ? 'Suppression...' : 'Supprimer'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
