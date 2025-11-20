@@ -51,7 +51,7 @@ export default function RealisationsPage() {
           title: 'Erreur',
           description: 'Impossible de charger les projets.',
         });
-        console.error(error);
+        console.error('Error fetching projects:', error.message);
       } else {
         setProjects(data || []);
         setFilteredProjects(data || []);

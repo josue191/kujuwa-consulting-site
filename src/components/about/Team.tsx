@@ -30,11 +30,11 @@ export default function Team() {
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('Error fetching team members:', error);
+        console.error('Error fetching team members:', error.message);
         toast({
           variant: 'destructive',
           title: 'Erreur de chargement',
-          description: "Impossible de récupérer l'équipe.",
+          description: "Impossible de récupérer les membres de l'équipe.",
         });
       } else {
         setTeamMembers(data || []);

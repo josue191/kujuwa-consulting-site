@@ -31,7 +31,7 @@ export default function ServicesPage() {
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('Error fetching services:', error);
+        console.error('Error fetching services:', error.message);
         toast({
           variant: 'destructive',
           title: 'Erreur de chargement',
