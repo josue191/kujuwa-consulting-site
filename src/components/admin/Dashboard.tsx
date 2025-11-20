@@ -52,44 +52,28 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
+      const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
 
-      const thirtyDaysAgo = subDays(new Date(), 30);
+      try {
+        const [
+          { count: applicationsCount, error: applicationsError },
+          { count: submissionsCount, error: submissionsError },
+          { data: applicationsData, error: applicationsDataError },
+          { data: contactsData, error: contactsDataError },
+          { data: domainData, error: domainDataError }
+        ] = await Promise.all([
+          supabase.from('applications').select('*', { count: 'exact', head: true }),
+          supabase.from('contactFormSubmissions').select('*', { count: 'exact', head: true }),
+          supabase.from('applications').select('created_at').gte('created_at', thirtyDaysAgo),
+          supabase.from('contactFormSubmissions').select('created_at').gte('created_at', thirtyDaysAgo),
+          supabase.from('applications').select('jobPostings(domain)')
+        ]);
 
-      const { count: applicationsCount, error: applicationsError } = await supabase
-        .from('applications')
-        .select('*', { count: 'exact', head: true });
+        const errors = [applicationsError, submissionsError, applicationsDataError, contactsDataError, domainDataError].filter(Boolean);
+        if (errors.length > 0) {
+          throw errors[0];
+        }
 
-      const { count: submissionsCount, error: submissionsError } = await supabase
-        .from('contactFormSubmissions')
-        .select('*', { count: 'exact', head: true });
-        
-      const { data: applicationsData, error: applicationsDataError } = await supabase
-        .from('applications')
-        .select('created_at')
-        .gte('created_at', thirtyDaysAgo.toISOString());
-        
-      const { data: contactsData, error: contactsDataError } = await supabase
-        .from('contactFormSubmissions')
-        .select('created_at')
-        .gte('created_at', thirtyDaysAgo.toISOString());
-
-      const { data: jobPostings, error: jobPostingsError } = await supabase
-        .from('jobPostings')
-        .select('id, domain');
-
-      const { data: allApplications, error: allApplicationsError } = await supabase
-        .from('applications')
-        .select('job_posting_id');
-
-      if (applicationsError || submissionsError || applicationsDataError || contactsDataError || jobPostingsError || allApplicationsError) {
-        const error = applicationsError || submissionsError || applicationsDataError || contactsDataError || jobPostingsError || allApplicationsError;
-        console.error('Error fetching dashboard data:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Erreur de chargement du tableau de bord',
-          description: error?.message,
-        });
-      } else {
         // --- Process Total Stats ---
         const totalSubmissions = (applicationsCount || 0) + (submissionsCount || 0);
         setStats({
@@ -98,46 +82,54 @@ export default function Dashboard() {
         });
 
         // --- Process History Chart ---
-        const interval = eachDayOfInterval({ start: thirtyDaysAgo, end: new Date() });
-        const dailyData = interval.map(day => ({
-          date: format(day, 'dd/MM'),
-          candidatures: 0,
-          messages: 0,
-        }));
+        const interval = eachDayOfInterval({ start: subDays(new Date(), 30), end: new Date() });
+        const dailyDataMap = new Map<string, DailySubmissions>();
+        interval.forEach(day => {
+            const dateKey = format(day, 'dd/MM');
+            dailyDataMap.set(dateKey, { date: dateKey, candidatures: 0, messages: 0 });
+        });
         
-        applicationsData.forEach(app => {
+        applicationsData?.forEach(app => {
             const dateStr = format(new Date(app.created_at), 'dd/MM');
-            const dayData = dailyData.find(d => d.date === dateStr);
+            const dayData = dailyDataMap.get(dateStr);
             if (dayData) dayData.candidatures++;
         });
 
-        contactsData.forEach(contact => {
+        contactsData?.forEach(contact => {
             const dateStr = format(new Date(contact.created_at), 'dd/MM');
-            const dayData = dailyData.find(d => d.date === dateStr);
+            const dayData = dailyDataMap.get(dateStr);
             if (dayData) dayData.messages++;
         });
 
-        setSubmissionsHistory(dailyData);
+        setSubmissionsHistory(Array.from(dailyDataMap.values()));
 
         // --- Process Submissions by Domain Chart ---
-        const domainCounts: { [key: string]: number } = {};
-        allApplications.forEach(app => {
-          const posting = jobPostings.find(p => p.id === app.job_posting_id);
-          if (posting && posting.domain) {
-            domainCounts[posting.domain] = (domainCounts[posting.domain] || 0) + 1;
-          }
+        if (domainData) {
+            const domainCounts = domainData.reduce((acc, current) => {
+                // @ts-ignore
+                const domain = current.jobPostings?.domain;
+                if (domain) {
+                    acc[domain] = (acc[domain] || 0) + 1;
+                }
+                return acc;
+            }, {} as Record<string, number>);
+            
+            const domainChartData = Object.entries(domainCounts)
+                .map(([name, count]) => ({ name, candidatures: count }))
+                .sort((a, b) => b.candidatures - a.candidatures);
+            setApplicationsByDomain(domainChartData);
+        }
+
+      } catch (error: any) {
+        console.error('Error fetching dashboard data:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Erreur de chargement du tableau de bord',
+          description: error?.message,
         });
-        
-        const domainChartData = Object.entries(domainCounts).map(([name, count]) => ({
-          name,
-          candidatures: count,
-        }));
-
-        setApplicationsByDomain(domainChartData);
-
+      } finally {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     };
 
     fetchDashboardData();
@@ -234,15 +226,19 @@ export default function Dashboard() {
                  <div className="flex items-center justify-center h-full">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                  </div>
-                ) : (
-              <BarChart data={applicationsByDomain} layout="vertical">
+                ) : applicationsByDomain.length > 0 ? (
+              <BarChart data={applicationsByDomain} layout="vertical" margin={{ left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={80} />
+                <XAxis type="number" allowDecimals={false} />
+                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 12 }} />
                 <Tooltip />
                 <Legend />
                 <Bar dataKey="candidatures" fill="hsl(var(--chart-1))" name="Candidatures"/>
               </BarChart>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                    Aucune donnée de candidature par domaine pour le moment.
+                </div>
               )}
             </ResponsiveContainer>
           </CardContent>
