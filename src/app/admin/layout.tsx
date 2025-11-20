@@ -29,8 +29,6 @@ import Logo from '@/components/shared/Logo';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { User } from '@supabase/supabase-js';
-import { SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-
 
 const navItems = [
   { href: '/admin', icon: BarChart, label: 'Tableau de bord' },
@@ -88,10 +86,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <SidebarProvider>
       <div className="flex min-h-screen">
         <Sidebar>
-            <SheetHeader className="p-4 border-b">
-              <SheetTitle><Logo /></SheetTitle>
-              <SheetDescription className="sr-only">Menu principal de navigation</SheetDescription>
-            </SheetHeader>
           <SidebarHeader className="hidden md:flex">
             <Logo />
           </SidebarHeader>
@@ -138,5 +132,3 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </SidebarProvider>
   );
 }
-
-    

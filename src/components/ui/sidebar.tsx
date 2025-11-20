@@ -18,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import Logo from "../shared/Logo"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -206,8 +207,8 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-           <SheetHeader className="p-4">
-              <SheetTitle>Menu</SheetTitle>
+            <SheetHeader className="p-4 border-b">
+              <SheetTitle><Logo /></SheetTitle>
               <SheetDescription className="sr-only">Menu principal de navigation</SheetDescription>
             </SheetHeader>
             {children}
@@ -765,5 +766,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
-    
