@@ -1,10 +1,6 @@
-'use client';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
+import { createClient } from '@/lib/supabase/server';
 import { UserSquare } from 'lucide-react';
 
 
@@ -15,36 +11,16 @@ type TeamMember = {
   image_url: string | null;
 };
 
-export default function Team() {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export default async function Team() {
   const supabase = createClient();
-  const { toast } = useToast();
-
-  useEffect(() => {
-    const fetchTeamMembers = async () => {
-      setIsLoading(true);
-      const { data, error } = await supabase
+  const { data: teamMembers, error } = await supabase
         .from('team_members')
         .select('*')
         .order('created_at', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching team members:', error.message);
-        toast({
-          variant: 'destructive',
-          title: 'Erreur de chargement',
-          description: "Impossible de récupérer les membres de l'équipe.",
-        });
-      } else {
-        setTeamMembers(data || []);
-      }
-      setIsLoading(false);
-    };
-
-    fetchTeamMembers();
-  }, [supabase, toast]);
-
+  if (error) {
+    console.error('Error fetching team members:', error.message);
+  }
 
   return (
     <section>
@@ -55,17 +31,8 @@ export default function Team() {
         </p>
       </div>
       <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-        {isLoading
-          ? Array.from({ length: 4 }).map((_, index) => (
-              <Card key={index} className="overflow-hidden text-center">
-                <Skeleton className="h-64 w-full" />
-                <CardContent className="p-4 space-y-2">
-                  <Skeleton className="h-5 w-3/4 mx-auto" />
-                  <Skeleton className="h-4 w-1/2 mx-auto" />
-                </CardContent>
-              </Card>
-            ))
-          : teamMembers.map((member) => (
+        {teamMembers && teamMembers.length > 0 ? (
+          teamMembers.map((member) => (
             <Card
               key={member.id}
               className="overflow-hidden text-center transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
@@ -91,13 +58,13 @@ export default function Team() {
                 <p className="text-sm text-primary">{member.role}</p>
               </CardContent>
             </Card>
-          ))}
-      </div>
-       {(!isLoading && teamMembers.length === 0) && (
-          <div className="mt-12 text-center text-muted-foreground">
+          ))
+        ) : (
+          <div className="col-span-1 sm:col-span-2 lg:col-span-4 mt-12 text-center text-muted-foreground">
               <p>Les membres de l'équipe seront bientôt affichés ici.</p>
           </div>
         )}
+      </div>
     </section>
   );
 }
