@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Loader2, MoreHorizontal, Trash2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   Dialog,
@@ -55,21 +55,29 @@ type ContactSubmission = {
   created_at: string;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export default function MessagesPage() {
   const { toast } = useToast();
   const [submissions, setSubmissions] = useState<ContactSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<ContactSubmission | null>(null);
   const [submissionToDelete, setSubmissionToDelete] = useState<ContactSubmission | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalSubmissions, setTotalSubmissions] = useState(0);
   const supabase = createClient();
 
   useEffect(() => {
     const fetchSubmissions = async () => {
       setIsLoading(true);
-      const { data, error } = await supabase
+      const from = currentPage * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+
+      const { data, error, count } = await supabase
         .from('contactFormSubmissions')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) {
         console.error('Error fetching submissions:', error);
@@ -80,12 +88,13 @@ export default function MessagesPage() {
         });
       } else {
         setSubmissions(data || []);
+        setTotalSubmissions(count || 0);
       }
       setIsLoading(false);
     };
 
     fetchSubmissions();
-  }, [supabase, toast]);
+  }, [supabase, toast, currentPage]);
 
   const handleDelete = async () => {
     if (!submissionToDelete) return;
@@ -106,74 +115,115 @@ export default function MessagesPage() {
         title: 'Message supprimé',
         description: 'Le message a été supprimé avec succès.',
       });
-      setSubmissions(submissions.filter(s => s.id !== submissionToDelete.id));
+      // Rafraîchir les données
+      const from = currentPage * ITEMS_PER_PAGE;
+      const { data, count } = await supabase.from('contactFormSubmissions').select('*', { count: 'exact' }).range(from, from + ITEMS_PER_PAGE - 1).order('created_at', { ascending: false });
+      setSubmissions(data || []);
+      setTotalSubmissions(count || 0);
+
+      // Si c'était le dernier élément de la page, revenir à la page précédente
+      if (submissions.length === 1 && currentPage > 0) {
+        setCurrentPage(prev => prev - 1);
+      }
     }
     setSubmissionToDelete(null);
   };
+  
+  const totalPages = Math.ceil(totalSubmissions / ITEMS_PER_PAGE);
 
+  const PaginationControls = () => (
+     totalPages > 1 && (
+        <div className="flex items-center justify-end space-x-2 py-4">
+            <span className="text-sm text-muted-foreground">
+                Page {currentPage + 1} sur {totalPages}
+            </span>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                disabled={currentPage === 0}
+            >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Précédent
+            </Button>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={currentPage >= totalPages - 1}
+            >
+                Suivant
+                <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+        </div>
+      )
+  );
 
   return (
     <div className="w-full">
       {/* Affichage sur grand écran */}
-      <div className="hidden md:block border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nom</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center">
-                  <div className="flex justify-center items-center p-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : submissions && submissions.length > 0 ? (
-              submissions.map((submission) => (
-                <TableRow key={submission.id} onClick={() => setSelectedSubmission(submission)} className="cursor-pointer">
-                  <TableCell className="font-medium">{submission.name}</TableCell>
-                  <TableCell>{submission.email}</TableCell>
-                  <TableCell>
-                    {submission.created_at
-                      ? format(new Date(submission.created_at), 'dd/MM/yyyy HH:mm')
-                      : 'N/A'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Actions</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem
-                          className="text-red-500"
-                          onSelect={() => setSubmissionToDelete(submission)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Supprimer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+      <div className="hidden md:block">
+        <div className="border rounded-lg">
+            <Table>
+            <TableHeader>
+                <TableRow>
+                <TableHead>Nom</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))
-            ) : (
-               <TableRow>
-                <TableCell colSpan={4} className="text-center h-24">
-                    Aucun message pour le moment.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+                {isLoading ? (
+                <TableRow>
+                    <TableCell colSpan={4} className="text-center">
+                    <div className="flex justify-center items-center p-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                    </TableCell>
+                </TableRow>
+                ) : submissions && submissions.length > 0 ? (
+                submissions.map((submission) => (
+                    <TableRow key={submission.id} onClick={() => setSelectedSubmission(submission)} className="cursor-pointer">
+                    <TableCell className="font-medium">{submission.name}</TableCell>
+                    <TableCell>{submission.email}</TableCell>
+                    <TableCell>
+                        {submission.created_at
+                        ? format(new Date(submission.created_at), 'dd/MM/yyyy HH:mm')
+                        : 'N/A'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Actions</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem
+                            className="text-red-500"
+                            onSelect={() => setSubmissionToDelete(submission)}
+                            >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                        </DropdownMenu>
+                    </TableCell>
+                    </TableRow>
+                ))
+                ) : (
+                <TableRow>
+                    <TableCell colSpan={4} className="text-center h-24">
+                        Aucun message pour le moment.
+                    </TableCell>
+                </TableRow>
+                )}
+            </TableBody>
+            </Table>
+        </div>
+        <PaginationControls />
       </div>
 
       {/* Affichage sur petit écran (mobile) */}
@@ -183,7 +233,8 @@ export default function MessagesPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
          ) : submissions && submissions.length > 0 ? (
-            submissions.map((submission) => (
+            <>
+            {submissions.map((submission) => (
                 <Card key={submission.id} onClick={() => setSelectedSubmission(submission)} className="cursor-pointer hover:bg-muted/50">
                     <CardHeader>
                         <CardTitle className="text-base break-words">{submission.subject}</CardTitle>
@@ -201,7 +252,9 @@ export default function MessagesPage() {
                         </span>
                     </div>
                 </Card>
-            ))
+            ))}
+            <PaginationControls />
+            </>
          ) : (
             <div className="text-center p-8 text-muted-foreground">
                 Aucun message pour le moment.
