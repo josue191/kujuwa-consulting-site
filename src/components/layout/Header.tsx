@@ -4,13 +4,45 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { navLinks } from '@/lib/data';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { navLinks as allNavLinks } from '@/lib/data';
 import Logo from '@/components/shared/Logo';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
+import { useEffect, useState } from 'react';
+import type { User } from '@supabase/supabase-js';
 
 export default function Header() {
   const pathname = usePathname();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setLoading(false);
+    };
+    getSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        setUser(session?.user ?? null);
+    });
+    
+    return () => {
+        authListener.subscription.unsubscribe();
+    };
+
+  }, [supabase]);
+
+  // Hide admin link if user is not logged in
+  const navLinks = allNavLinks.filter(link => {
+      if (link.href === '/admin') {
+          return !!user;
+      }
+      return true;
+  });
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background">
@@ -29,9 +61,12 @@ export default function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[300px]">
-                <div className="mt-8 flex flex-col gap-4">
-                  <Logo />
-                  <nav className="grid gap-2">
+                 <SheetHeader className="p-2 border-b mb-4">
+                    <SheetTitle><Logo /></SheetTitle>
+                    <SheetDescription className="sr-only">Menu de navigation principal</SheetDescription>
+                </SheetHeader>
+                <div className="flex flex-col gap-4">
+                  <nav className="grid gap-2 p-2">
                     {navLinks.map((link) => (
                       <Link
                         key={link.href}
@@ -53,22 +88,24 @@ export default function Header() {
           </div>
 
           <div className="hidden md:flex md:flex-1">
-            <nav className="flex items-center gap-6 text-sm">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    'font-medium transition-colors hover:text-primary',
-                    pathname === link.href
-                      ? 'text-primary'
-                      : 'text-muted-foreground'
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
+            {!loading && (
+                 <nav className="flex items-center gap-6 text-sm">
+                 {navLinks.map((link) => (
+                   <Link
+                     key={link.href}
+                     href={link.href}
+                     className={cn(
+                       'font-medium transition-colors hover:text-primary',
+                       pathname === link.href
+                         ? 'text-primary'
+                         : 'text-muted-foreground'
+                     )}
+                   >
+                     {link.label}
+                   </Link>
+                 ))}
+               </nav>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

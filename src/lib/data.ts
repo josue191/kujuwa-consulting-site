@@ -26,7 +26,7 @@ export const navLinks = [
   { href: '/nos-services', label: 'Nos services' },
   { href: '/nos-realisations', label: 'Nos réalisations et recherches' },
   { href: '/offres-d-emploi', label: 'Offres d’emploi' },
-  { href: '/admin', label: 'Admin' },
+  { href: '/admin', label: 'Admin', admin: true },
 ];
 
 export const heroContent = {
