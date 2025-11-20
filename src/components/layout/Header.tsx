@@ -19,6 +19,7 @@ const useUser = () => {
   
     useEffect(() => {
       const getSession = async () => {
+        setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         setUser(session?.user ?? null);
         setLoading(false);
@@ -27,6 +28,9 @@ const useUser = () => {
   
       const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
           setUser(session?.user ?? null);
+          if (event === 'INITIAL_SESSION') {
+            setLoading(false);
+          }
       });
       
       return () => {
@@ -41,6 +45,7 @@ const useUser = () => {
 export default function Header() {
   const pathname = usePathname();
   const { user, loading } = useUser();
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   
   // Hide admin link if user is not logged in
   const navLinks = allNavLinks.filter(link => {
@@ -53,13 +58,13 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background">
       <div className="container flex h-16 max-w-7xl items-center px-4">
-        <div className="flex-1 md:flex-none">
+        <div className="flex-none">
           <Logo />
         </div>
 
         <div className="flex flex-1 items-center justify-end md:justify-center">
             <div className="md:hidden">
-                <Sheet>
+                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
                     <Button variant="ghost" size="icon">
                     <Menu className="h-6 w-6" />
@@ -77,6 +82,7 @@ export default function Header() {
                         <Link
                             key={link.href}
                             href={link.href}
+                            onClick={() => setIsSheetOpen(false)}
                             className={cn(
                             'flex items-center rounded-lg p-2 text-lg font-semibold',
                             pathname === link.href
@@ -93,24 +99,22 @@ export default function Header() {
                 </Sheet>
             </div>
 
-            {!loading && (
-                <nav className="hidden items-center gap-6 text-sm md:flex">
-                {navLinks.map((link) => (
-                <Link
-                    key={link.href}
-                    href={link.href}
-                    className={cn(
-                    'font-medium transition-colors hover:text-primary',
-                    pathname === link.href
-                        ? 'text-primary'
-                        : 'text-muted-foreground'
-                    )}
-                >
-                    {link.label}
-                </Link>
+            <nav className="hidden items-center gap-4 text-sm md:flex lg:gap-6">
+                {!loading && navLinks.map((link) => (
+                    <Link
+                        key={link.href}
+                        href={link.href}
+                        className={cn(
+                        'font-medium transition-colors hover:text-primary',
+                        pathname === link.href
+                            ? 'text-primary'
+                            : 'text-muted-foreground'
+                        )}
+                    >
+                        {link.label}
+                    </Link>
                 ))}
             </nav>
-            )}
         </div>
 
         <div className="hidden flex-1 items-center justify-end md:flex">
