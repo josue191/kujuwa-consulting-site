@@ -29,6 +29,7 @@
     --chart-4: 280 85% 65%;
     --chart-5: 220 75% 55%;
     --radius: 0.5rem;
+    --sidebar-background: var(--background);
   }
  
   .dark {
@@ -56,6 +57,7 @@
     --chart-3: 30 90% 60%;
     --chart-4: 280 85% 65%;
     --chart-5: 220 75% 55%;
+    --sidebar-background: var(--background);
   }
 }
  

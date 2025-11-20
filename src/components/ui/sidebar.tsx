@@ -207,10 +207,6 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-            <SheetHeader className="p-4 border-b">
-              <SheetTitle><Logo /></SheetTitle>
-              <SheetDescription className="sr-only">Menu principal de navigation</SheetDescription>
-            </SheetHeader>
             {children}
           </SheetContent>
         </Sheet>
