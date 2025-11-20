@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, Loader2, MapPin, Trash2, Edit } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Loader2, MapPin, Trash2, Edit, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +61,8 @@ type JobPosting = {
   created_at: string;
 };
 
+const ITEMS_PER_PAGE = 10;
+
 const formSchema = z.object({
   title: z.string().min(5, { message: 'Le titre doit contenir au moins 5 caractères.' }),
   domain: z.string().min(2, { message: 'Le domaine est requis.' }),
@@ -75,6 +77,8 @@ export default function OffresPage() {
   const [editingJob, setEditingJob] = useState<JobPosting | null>(null);
   const [jobToDelete, setJobToDelete] = useState<JobPosting | null>(null);
   const [selectedJob, setSelectedJob] = useState<JobPosting | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalJobs, setTotalJobs] = useState(0);
 
   const supabase = createClient();
   const { toast } = useToast();
@@ -91,10 +95,14 @@ export default function OffresPage() {
 
   const fetchJobPostings = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
+    const from = currentPage * ITEMS_PER_PAGE;
+    const to = from + ITEMS_PER_PAGE - 1;
+
+    const { data, error, count } = await supabase
       .from('jobPostings')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
     if (error) {
       console.error('Error fetching job postings:', error.message);
@@ -105,13 +113,14 @@ export default function OffresPage() {
       });
     } else {
       setJobPostings(data || []);
+      setTotalJobs(count || 0);
     }
     setIsLoading(false);
   };
 
   useEffect(() => {
     fetchJobPostings();
-  }, [supabase, toast]);
+  }, [supabase, toast, currentPage]);
 
   const handleEdit = (job: JobPosting) => {
     setEditingJob(job);
@@ -197,10 +206,12 @@ export default function OffresPage() {
         title: 'Offre supprimée',
         description: "L'offre a été supprimée avec succès.",
       });
-      setJobPostings(jobPostings.filter(job => job.id !== jobToDelete.id));
+      fetchJobPostings();
     }
     setJobToDelete(null);
   };
+  
+  const totalPages = Math.ceil(totalJobs / ITEMS_PER_PAGE);
 
   return (
     <div className="w-full">
@@ -281,6 +292,33 @@ export default function OffresPage() {
           </TableBody>
         </Table>
       </div>
+
+       {totalPages > 1 && (
+        <div className="flex items-center justify-end space-x-2 py-4">
+            <span className="text-sm text-muted-foreground">
+                Page {currentPage + 1} sur {totalPages}
+            </span>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                disabled={currentPage === 0}
+            >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Précédent
+            </Button>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={currentPage >= totalPages - 1}
+            >
+                Suivant
+                <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+        </div>
+      )}
+
 
        {selectedJob && (
         <Dialog open={!!selectedJob} onOpenChange={() => setSelectedJob(null)}>
