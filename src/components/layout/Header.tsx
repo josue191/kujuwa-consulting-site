@@ -50,7 +50,7 @@ export default function Header() {
   // Hide admin link if user is not logged in
   const navLinks = allNavLinks.filter(link => {
       if (link.href === '/admin') {
-          return !!user;
+          return !loading && !!user;
       }
       return true;
   });
@@ -58,12 +58,33 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background">
       <div className="container flex h-16 max-w-7xl items-center px-4">
-        <div className="flex-none">
+        <div className="flex items-center">
           <Logo />
         </div>
 
-        <div className="flex flex-1 items-center justify-end md:justify-center">
-            <div className="md:hidden">
+        <div className="flex flex-1 items-center justify-end space-x-2 sm:space-x-4">
+            <nav className="hidden items-center gap-4 text-sm md:flex lg:gap-6">
+                {!loading && navLinks.map((link) => (
+                    <Link
+                        key={link.href}
+                        href={link.href}
+                        className={cn(
+                        'font-medium transition-colors hover:text-primary',
+                        pathname === link.href
+                            ? 'text-primary'
+                            : 'text-muted-foreground'
+                        )}
+                    >
+                        {link.label}
+                    </Link>
+                ))}
+            </nav>
+            <div className="hidden md:flex flex-1 items-center justify-end">
+                <Button asChild>
+                    <Link href="/contact">Nous contacter</Link>
+                </Button>
+            </div>
+             <div className="md:hidden">
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
                     <Button variant="ghost" size="icon">
@@ -94,33 +115,13 @@ export default function Header() {
                         </Link>
                         ))}
                     </nav>
+                     <Button asChild onClick={() => setIsSheetOpen(false)}>
+                        <Link href="/contact">Nous contacter</Link>
+                    </Button>
                     </div>
                 </SheetContent>
                 </Sheet>
             </div>
-
-            <nav className="hidden items-center gap-4 text-sm md:flex lg:gap-6">
-                {!loading && navLinks.map((link) => (
-                    <Link
-                        key={link.href}
-                        href={link.href}
-                        className={cn(
-                        'font-medium transition-colors hover:text-primary',
-                        pathname === link.href
-                            ? 'text-primary'
-                            : 'text-muted-foreground'
-                        )}
-                    >
-                        {link.label}
-                    </Link>
-                ))}
-            </nav>
-        </div>
-
-        <div className="hidden flex-1 items-center justify-end md:flex">
-          <Button asChild>
-            <Link href="/contact">Nous contacter</Link>
-          </Button>
         </div>
       </div>
     </header>
