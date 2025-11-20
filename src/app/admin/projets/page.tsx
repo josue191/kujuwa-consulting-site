@@ -8,7 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, Loader2, Trash2, Edit, Download } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Loader2, Trash2, Edit, Download, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -64,6 +64,8 @@ type Project = {
   report_url: string | null;
 };
 
+const ITEMS_PER_PAGE = 10;
+
 const formSchema = z.object({
   title: z.string().min(2, { message: 'Le titre doit contenir au moins 2 caractères.' }),
   category: z.string().optional(),
@@ -93,6 +95,8 @@ export default function ProjectsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalProjects, setTotalProjects] = useState(0);
 
   const supabase = createClient();
   const { toast } = useToast();
@@ -109,10 +113,14 @@ export default function ProjectsPage() {
   
   const fetchProjects = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
+    const from = currentPage * ITEMS_PER_PAGE;
+    const to = from + ITEMS_PER_PAGE - 1;
+
+    const { data, error, count } = await supabase
       .from('projects')
-      .select('*')
-      .order('year', { ascending: false });
+      .select('*', { count: 'exact' })
+      .order('year', { ascending: false })
+      .range(from, to);
 
     if (error) {
       toast({
@@ -122,13 +130,14 @@ export default function ProjectsPage() {
       });
     } else {
       setProjects(data || []);
+      setTotalProjects(count || 0);
     }
     setIsLoading(false);
   };
 
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [currentPage]);
 
   const handleEdit = (project: Project) => {
     setEditingProject(project);
@@ -242,11 +251,13 @@ export default function ProjectsPage() {
        toast({ variant: 'destructive', title: 'Erreur de suppression', description: error.message });
     } else {
        toast({ title: 'Projet supprimé', description: "Le projet a été supprimé." });
-       setProjects(projects.filter(p => p.id !== projectToDelete.id));
+       fetchProjects();
     }
     
     setProjectToDelete(null);
   };
+  
+  const totalPages = Math.ceil(totalProjects / ITEMS_PER_PAGE);
 
   return (
     <div className="w-full">
@@ -300,6 +311,32 @@ export default function ProjectsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-end space-x-2 py-4">
+            <span className="text-sm text-muted-foreground">
+                Page {currentPage + 1} sur {totalPages}
+            </span>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                disabled={currentPage === 0}
+            >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Précédent
+            </Button>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={currentPage >= totalPages - 1}
+            >
+                Suivant
+                <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+        </div>
+      )}
       
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-[625px]">
