@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Loader2, Download, Trash2, Mail, Phone, ArrowLeft, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -21,16 +21,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -38,6 +28,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import DeleteConfirmationDialog from '@/components/admin/DeleteConfirmationDialog';
 
 type Application = {
   id: string;
@@ -60,13 +51,14 @@ export default function CandidaturesPage() {
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalApplications, setTotalApplications] = useState(0);
+  const [isPending, startTransition] = useTransition();
+
   const supabase = createClient();
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchApplications = async () => {
+  const fetchApplications = async (page: number) => {
       setIsLoading(true);
-      const from = currentPage * ITEMS_PER_PAGE;
+      const from = page * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
       const { data, error, count } = await supabase
@@ -87,57 +79,66 @@ export default function CandidaturesPage() {
         setTotalApplications(count || 0);
       }
       setIsLoading(false);
-    };
+  };
 
-    fetchApplications();
-  }, [supabase, toast, currentPage]);
+  useEffect(() => {
+    fetchApplications(currentPage);
+  }, [currentPage]);
 
   const handleDelete = async () => {
     if (!applicationToDelete) return;
 
-    // 1. Delete the CV file from storage
-    const cvUrl = applicationToDelete.cv_url;
-    const fileName = cvUrl.split('/').pop();
+    startTransition(async () => {
+      // 1. Delete the CV file from storage
+      const cvUrl = applicationToDelete.cv_url;
+      const fileName = cvUrl.split('/').pop();
 
-    if (fileName) {
-        const { error: storageError } = await supabase.storage
-            .from('cvs')
-            .remove([fileName]);
+      if (fileName) {
+          const { error: storageError } = await supabase.storage
+              .from('cvs')
+              .remove([fileName]);
+          
+          if (storageError) {
+              console.error("Error deleting CV file:", storageError.message);
+              toast({
+                  variant: 'destructive',
+                  title: 'Erreur de suppression du CV',
+                  description: `Le fichier CV n'a pas pu être supprimé : ${storageError.message}`,
+              });
+              setApplicationToDelete(null);
+              return;
+          }
+      }
+
+      // 2. Delete the application record from the table
+      const { error: dbError } = await supabase
+        .from('applications')
+        .delete()
+        .match({ id: applicationToDelete.id });
+
+      if (dbError) {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur de suppression',
+          description: `La candidature n'a pas pu être supprimée: ${dbError.message}`,
+        });
+      } else {
+        toast({
+          title: 'Candidature supprimée',
+          description: 'La candidature a été supprimée avec succès.',
+        });
         
-        if (storageError) {
-            console.error("Error deleting CV file:", storageError.message);
-            toast({
-                variant: 'destructive',
-                title: 'Erreur de suppression du CV',
-                description: `Le fichier CV n'a pas pu être supprimé : ${storageError.message}`,
-            });
+        const newTotalPages = Math.ceil((totalApplications - 1) / ITEMS_PER_PAGE);
+        const newCurrentPage = Math.min(currentPage, Math.max(0, newTotalPages - 1));
+
+        if (newCurrentPage !== currentPage) {
+            setCurrentPage(newCurrentPage);
+        } else {
+            fetchApplications(newCurrentPage);
         }
-    }
-
-    // 2. Delete the application record from the table
-    const { error: dbError } = await supabase
-      .from('applications')
-      .delete()
-      .match({ id: applicationToDelete.id });
-
-    if (dbError) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur de suppression',
-        description: `La candidature n'a pas pu être supprimée: ${dbError.message}`,
-      });
-    } else {
-      toast({
-        title: 'Candidature supprimée',
-        description: 'La candidature a été supprimée avec succès.',
-      });
-      // Refresh data
-      const from = currentPage * ITEMS_PER_PAGE;
-      const { data, count } = await supabase.from('applications').select('*', { count: 'exact' }).range(from, from + ITEMS_PER_PAGE - 1).order('created_at', { ascending: false });
-      setApplications(data || []);
-      setTotalApplications(count || 0);
-    }
-    setApplicationToDelete(null);
+      }
+      setApplicationToDelete(null);
+    });
   };
 
   const getBadgeVariant = (status: string) => {
@@ -307,22 +308,14 @@ export default function CandidaturesPage() {
       )}
 
       {applicationToDelete && (
-        <AlertDialog open={!!applicationToDelete} onOpenChange={() => setApplicationToDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cette candidature ?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Cette action est irréversible. Elle supprimera définitivement la candidature et le CV associé.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-                Supprimer
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          <DeleteConfirmationDialog
+            isOpen={!!applicationToDelete}
+            onOpenChange={() => setApplicationToDelete(null)}
+            onConfirm={handleDelete}
+            title="Êtes-vous sûr de vouloir supprimer cette candidature ?"
+            description="Cette action est irréversible. Elle supprimera définitivement la candidature et le CV associé."
+            isPending={isPending}
+          />
       )}
     </div>
   );
