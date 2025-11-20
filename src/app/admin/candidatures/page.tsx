@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Loader2, Download, Trash2, Mail, Phone } from 'lucide-react';
+import { MoreHorizontal, Loader2, Download, Trash2, Mail, Phone, ArrowLeft, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
@@ -51,21 +51,29 @@ type Application = {
   cv_url: string;
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export default function CandidaturesPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [applicationToDelete, setApplicationToDelete] = useState<Application | null>(null);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalApplications, setTotalApplications] = useState(0);
   const supabase = createClient();
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchApplications = async () => {
       setIsLoading(true);
-      const { data, error } = await supabase
+      const from = currentPage * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+
+      const { data, error, count } = await supabase
         .from('applications')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) {
         console.error('Error fetching applications:', error.message);
@@ -76,12 +84,13 @@ export default function CandidaturesPage() {
         });
       } else {
         setApplications(data || []);
+        setTotalApplications(count || 0);
       }
       setIsLoading(false);
     };
 
     fetchApplications();
-  }, [supabase, toast]);
+  }, [supabase, toast, currentPage]);
 
   const handleDelete = async () => {
     if (!applicationToDelete) return;
@@ -122,7 +131,11 @@ export default function CandidaturesPage() {
         title: 'Candidature supprimée',
         description: 'La candidature a été supprimée avec succès.',
       });
-      setApplications(applications.filter(app => app.id !== applicationToDelete.id));
+      // Refresh data
+      const from = currentPage * ITEMS_PER_PAGE;
+      const { data, count } = await supabase.from('applications').select('*', { count: 'exact' }).range(from, from + ITEMS_PER_PAGE - 1).order('created_at', { ascending: false });
+      setApplications(data || []);
+      setTotalApplications(count || 0);
     }
     setApplicationToDelete(null);
   };
@@ -139,6 +152,8 @@ export default function CandidaturesPage() {
         return 'secondary';
     }
   };
+  
+  const totalPages = Math.ceil(totalApplications / ITEMS_PER_PAGE);
 
   return (
     <div className="w-full">
@@ -216,6 +231,33 @@ export default function CandidaturesPage() {
           </TableBody>
         </Table>
       </div>
+      
+      {totalPages > 1 && (
+        <div className="flex items-center justify-end space-x-2 py-4">
+            <span className="text-sm text-muted-foreground">
+                Page {currentPage + 1} sur {totalPages}
+            </span>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                disabled={currentPage === 0}
+            >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Précédent
+            </Button>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                disabled={currentPage >= totalPages - 1}
+            >
+                Suivant
+                <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+        </div>
+      )}
+
 
        {selectedApplication && (
         <Dialog open={!!selectedApplication} onOpenChange={() => setSelectedApplication(null)}>
