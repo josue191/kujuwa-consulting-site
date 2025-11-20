@@ -21,16 +21,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -51,6 +41,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import DeleteConfirmationDialog from '@/components/admin/DeleteConfirmationDialog';
 
 type JobPosting = {
   id: string;
@@ -424,22 +415,13 @@ export default function OffresPage() {
       )}
 
       {jobToDelete && (
-        <AlertDialog open={!!jobToDelete} onOpenChange={() => setJobToDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cette offre ?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Cette action est irréversible. Elle supprimera définitivement l'offre d'emploi.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-                Supprimer
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <DeleteConfirmationDialog
+          isOpen={!!jobToDelete}
+          onOpenChange={() => setJobToDelete(null)}
+          onConfirm={handleDelete}
+          title="Êtes-vous sûr de vouloir supprimer cette offre ?"
+          description="Cette action est irréversible. Elle supprimera définitivement l'offre d'emploi."
+        />
       )}
     </div>
   );
