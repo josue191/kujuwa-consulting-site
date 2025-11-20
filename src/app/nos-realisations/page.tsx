@@ -31,6 +31,8 @@ type Project = {
 
 export default function RealisationsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
   const { toast } = useToast();
@@ -52,12 +54,26 @@ export default function RealisationsPage() {
         console.error(error);
       } else {
         setProjects(data || []);
+        setFilteredProjects(data || []);
       }
       setIsLoading(false);
     };
 
     fetchProjects();
   }, [supabase, toast]);
+
+  useEffect(() => {
+    const results = projects.filter(project => {
+        const term = searchTerm.toLowerCase();
+        return (
+            project.title.toLowerCase().includes(term) ||
+            (project.category && project.category.toLowerCase().includes(term)) ||
+            (project.description && project.description.toLowerCase().includes(term))
+        );
+    });
+    setFilteredProjects(results);
+  }, [searchTerm, projects]);
+
 
   return (
     <>
@@ -69,9 +85,13 @@ export default function RealisationsPage() {
         <div className="mb-12 flex flex-col items-center gap-4 md:flex-row">
           <div className="relative w-full md:flex-grow">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Rechercher par projet, domaine..." className="pl-10" />
+            <Input 
+                placeholder="Rechercher par projet, domaine..." 
+                className="pl-10" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          {/* Add filter dropdowns here if needed */}
         </div>
 
         {isLoading ? (
@@ -92,9 +112,9 @@ export default function RealisationsPage() {
                 </Card>
              ))}
           </div>
-        ) : projects.length > 0 ? (
+        ) : filteredProjects.length > 0 ? (
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
+            {filteredProjects.map((project) => (
               <Card key={project.id} className="flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
                 <div className="relative h-56 w-full bg-muted">
                     {project.image_url ? (
@@ -134,7 +154,7 @@ export default function RealisationsPage() {
           </div>
         ) : (
             <div className="py-16 text-center text-muted-foreground">
-                <p>Aucun projet à afficher pour le moment.</p>
+                <p>Aucun projet ne correspond à votre recherche "{searchTerm}".</p>
             </div>
         )}
       </div>
