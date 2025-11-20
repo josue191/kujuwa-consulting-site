@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, PlusCircle, Loader2, Trash2, Edit, Download, ArrowLeft, ArrowRight } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -39,7 +39,6 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { v4 as uuidv4 } from 'uuid';
 import {
     Form,
     FormControl,
@@ -52,6 +51,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
+import { saveProject, deleteProject } from '@/lib/actions/projects';
 
 type Project = {
   id: string;
@@ -97,6 +97,7 @@ export default function ProjectsPage() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalProjects, setTotalProjects] = useState(0);
+  const [isPending, startTransition] = useTransition();
 
   const supabase = createClient();
   const { toast } = useToast();
@@ -110,34 +111,34 @@ export default function ProjectsPage() {
       description: '',
     },
   });
-  
-  const fetchProjects = async () => {
-    setIsLoading(true);
-    const from = currentPage * ITEMS_PER_PAGE;
-    const to = from + ITEMS_PER_PAGE - 1;
-
-    const { data, error, count } = await supabase
-      .from('projects')
-      .select('*', { count: 'exact' })
-      .order('year', { ascending: false })
-      .range(from, to);
-
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur de chargement',
-        description: `Impossible de charger les projets: ${error.message}`,
-      });
-    } else {
-      setProjects(data || []);
-      setTotalProjects(count || 0);
-    }
-    setIsLoading(false);
-  };
 
   useEffect(() => {
+    const fetchProjects = async () => {
+      setIsLoading(true);
+      const from = currentPage * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+
+      const { data, error, count } = await supabase
+        .from('projects')
+        .select('*', { count: 'exact' })
+        .order('year', { ascending: false })
+        .range(from, to);
+
+      if (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur de chargement',
+          description: `Impossible de charger les projets: ${error.message}`,
+        });
+      } else {
+        setProjects(data || []);
+        setTotalProjects(count || 0);
+      }
+      setIsLoading(false);
+    };
+
     fetchProjects();
-  }, [currentPage]);
+  }, [currentPage, supabase, toast]);
 
   const handleEdit = (project: Project) => {
     setEditingProject(project);
@@ -165,96 +166,48 @@ export default function ProjectsPage() {
     setIsFormOpen(true);
   };
   
-  const uploadFile = async (file: File, bucket: string, oldUrl?: string | null) => {
-    // 1. Delete old file if it exists
-    if (oldUrl) {
-        const oldFileName = oldUrl.split('/').pop();
-        if (oldFileName) {
-            await supabase.storage.from(bucket).remove([oldFileName]);
-        }
-    }
-    // 2. Upload new file
-    const fileName = `${uuidv4()}-${file.name}`;
-    const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, file);
-
-    if (uploadError) {
-        toast({ variant: "destructive", title: `Erreur d'envoi du fichier (${bucket})`, description: uploadError.message });
-        throw uploadError;
-    }
-    // 3. Get public URL
-    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
-    return urlData.publicUrl;
-  };
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-        let imageUrl = editingProject?.image_url || null;
-        let reportUrl = editingProject?.report_url || null;
-
-        const imageFile = values.imageFile?.[0];
-        if (imageFile) {
-            imageUrl = await uploadFile(imageFile, 'project-images', editingProject?.image_url);
+    startTransition(async () => {
+        const formData = new FormData();
+        if (editingProject) {
+            formData.append('id', editingProject.id);
+            formData.append('current_image_url', editingProject.image_url || '');
+            formData.append('current_report_url', editingProject.report_url || '');
         }
-        
-        const reportFile = values.reportFile?.[0];
-        if (reportFile) {
-            reportUrl = await uploadFile(reportFile, 'project-reports', editingProject?.report_url);
+        formData.append('title', values.title);
+        formData.append('category', values.category || '');
+        formData.append('year', values.year?.toString() || '');
+        formData.append('description', values.description || '');
+
+        if (values.imageFile?.[0]) {
+            formData.append('imageFile', values.imageFile[0]);
+        }
+        if (values.reportFile?.[0]) {
+            formData.append('reportFile', values.reportFile[0]);
         }
 
-        const projectData = {
-            title: values.title,
-            category: values.category,
-            year: values.year,
-            description: values.description,
-            image_url: imageUrl,
-            report_url: reportUrl,
-        };
+        const result = await saveProject(formData);
 
-        const { error } = editingProject
-            ? await supabase.from('projects').update(projectData).match({ id: editingProject.id })
-            : await supabase.from('projects').insert([projectData]);
-
-        if (error) throw error;
-        
-        toast({ title: `Projet ${editingProject ? 'mis à jour' : 'ajouté'}`, description: `Le projet a été enregistré.` });
-        setIsFormOpen(false);
-        fetchProjects();
-
-    } catch (error: any) {
-        console.error("Submit error:", error);
-        toast({ variant: 'destructive', title: "Erreur lors de l'enregistrement", description: error.message });
-    }
+        if (result.success) {
+            toast({ title: 'Succès', description: result.message });
+            setIsFormOpen(false);
+        } else {
+            toast({ variant: 'destructive', title: 'Erreur', description: result.message });
+        }
+    });
   }
   
   const handleDelete = async () => {
     if (!projectToDelete) return;
-
-    if (projectToDelete.image_url) {
-        const fileName = projectToDelete.image_url.split('/').pop();
-        if (fileName) {
-            await supabase.storage.from('project-images').remove([fileName]);
+    startTransition(async () => {
+        const result = await deleteProject(projectToDelete);
+        if (result.success) {
+            toast({ title: 'Succès', description: result.message });
+            setProjectToDelete(null);
+        } else {
+            toast({ variant: 'destructive', title: 'Erreur', description: result.message });
         }
-    }
-
-    if (projectToDelete.report_url) {
-        const fileName = projectToDelete.report_url.split('/').pop();
-        if (fileName) {
-            await supabase.storage.from('project-reports').remove([fileName]);
-        }
-    }
-    
-    const { error } = await supabase.from('projects').delete().match({ id: projectToDelete.id });
-    
-    if (error) {
-       toast({ variant: 'destructive', title: 'Erreur de suppression', description: error.message });
-    } else {
-       toast({ title: 'Projet supprimé', description: "Le projet a été supprimé." });
-       fetchProjects();
-    }
-    
-    setProjectToDelete(null);
+    });
   };
   
   const totalPages = Math.ceil(totalProjects / ITEMS_PER_PAGE);
@@ -403,7 +356,7 @@ export default function ProjectsPage() {
                   )}
                   <DialogFooter className="pt-4 border-t sticky bottom-0 bg-background py-4">
                       <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annuler</Button>
-                      <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Enregistrement...' : 'Enregistrer'}</Button>
+                      <Button type="submit" disabled={isPending}>{isPending ? 'Enregistrement...' : 'Enregistrer'}</Button>
                   </DialogFooter>
                 </form>
             </Form>
@@ -413,7 +366,7 @@ export default function ProjectsPage() {
       <AlertDialog open={!!projectToDelete} onOpenChange={() => setProjectToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Supprimer ce projet ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible et supprimera le projet, son image et son rapport associés.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{isPending ? "Suppression..." : "Supprimer"}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
