@@ -1,13 +1,10 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { useParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import PageHeader from '@/components/shared/PageHeader';
 import ApplicationForm from '@/components/jobs/ApplicationForm';
 import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
 import { MapPin, Briefcase, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
+import type { Metadata } from 'next';
 
 type JobPosting = {
   id: string;
@@ -18,55 +15,46 @@ type JobPosting = {
   created_at: string;
 };
 
-export default function JobDetailPage() {
-  const [job, setJob] = useState<JobPosting | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const params = useParams();
-  const id = params.id as string;
+type Props = {
+  params: { id: string };
+};
+
+// Function to generate metadata dynamically
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = createClient();
-
-  useEffect(() => {
-    if (id) {
-      const fetchJob = async () => {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('jobPostings')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (error) {
-          console.error('Error fetching job details:', error);
-          setJob(null);
-        } else {
-          setJob(data);
-        }
-        setIsLoading(false);
-      };
-      fetchJob();
-    }
-  }, [id, supabase]);
-
-  if (isLoading) {
-    return (
-        <div className="container mx-auto max-w-7xl py-12 sm:py-16">
-            <Skeleton className="h-12 w-2/3 mx-auto" />
-            <Skeleton className="h-6 w-1/3 mx-auto mt-4" />
-            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-16">
-                <div className="md:col-span-2 space-y-6">
-                    <Skeleton className="h-8 w-1/4" />
-                    <Skeleton className="h-40 w-full" />
-                </div>
-                <div className="space-y-6">
-                    <Skeleton className="h-8 w-1/2" />
-                    <Skeleton className="h-96 w-full" />
-                </div>
-            </div>
-      </div>
-    );
-  }
+  const { data: job } = await supabase
+    .from('jobPostings')
+    .select('title, description')
+    .eq('id', params.id)
+    .single();
 
   if (!job) {
+    return {
+      title: 'Offre non trouvée',
+    };
+  }
+
+  return {
+    title: `${job.title} | Kujuwa Consulting`,
+    description: job.description.substring(0, 160),
+  };
+}
+
+
+export default async function JobDetailPage({ params }: Props) {
+  const supabase = createClient();
+  const { data: job, error } = await supabase
+    .from('jobPostings')
+    .select('*')
+    .eq('id', params.id)
+    .single();
+  
+  // Also fetch all jobs for the application form dropdown
+  const { data: allJobs } = await supabase.from('jobPostings').select('id, title');
+
+
+  if (error || !job) {
+    console.error('Error fetching job details:', error);
     return (
       <>
         <PageHeader title="Offre non trouvée" description="Désolé, l'offre d'emploi que vous cherchez n'existe pas ou n'est plus disponible." />
@@ -106,7 +94,7 @@ export default function JobDetailPage() {
                     Postuler pour ce poste
                     </h2>
                     <Separator className="my-6" />
-                    <ApplicationForm offers={[job]} selectedOfferId={job.id} />
+                    <ApplicationForm offers={allJobs || []} selectedOfferId={job.id} />
                 </div>
             </div>
          </div>
