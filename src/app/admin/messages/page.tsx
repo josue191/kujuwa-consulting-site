@@ -20,16 +20,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -45,6 +35,7 @@ import {
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
+import DeleteConfirmationDialog from '@/components/admin/DeleteConfirmationDialog';
 
 type ContactSubmission = {
   id: string;
@@ -297,22 +288,13 @@ export default function MessagesPage() {
       )}
 
       {submissionToDelete && (
-        <AlertDialog open={!!submissionToDelete} onOpenChange={() => setSubmissionToDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer ce message ?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Cette action est irréversible et supprimera définitivement le message de votre base de données.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-                Supprimer
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          <DeleteConfirmationDialog
+            isOpen={!!submissionToDelete}
+            onOpenChange={() => setSubmissionToDelete(null)}
+            onConfirm={handleDelete}
+            title="Êtes-vous sûr de vouloir supprimer ce message ?"
+            description="Cette action est irréversible et supprimera définitivement le message de votre base de données."
+          />
       )}
     </div>
   );
