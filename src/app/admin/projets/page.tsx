@@ -19,16 +19,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -52,6 +42,7 @@ import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
 import { saveProject, deleteProject } from '@/lib/actions/projects';
+import DeleteConfirmationDialog from '@/components/admin/DeleteConfirmationDialog';
 
 type Project = {
   id: string;
@@ -363,12 +354,16 @@ export default function ProjectsPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!projectToDelete} onOpenChange={() => setProjectToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Supprimer ce projet ?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible et supprimera le projet, son image et son rapport associés.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={handleDelete} disabled={isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{isPending ? "Suppression..." : "Supprimer"}</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {projectToDelete && (
+        <DeleteConfirmationDialog
+          isOpen={!!projectToDelete}
+          onOpenChange={() => setProjectToDelete(null)}
+          onConfirm={handleDelete}
+          title="Supprimer ce projet ?"
+          description="Cette action est irréversible et supprimera le projet, son image et son rapport associés."
+          isPending={isPending}
+        />
+       )}
     </div>
   );
 }
