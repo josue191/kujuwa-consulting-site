@@ -1,12 +1,6 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import PageHeader from '@/components/shared/PageHeader';
 import JobListing from '@/components/jobs/JobListing';
-import { createClient } from '@/lib/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { createClient } from '@/lib/supabase/server';
 import { jobOffersContent } from '@/lib/data';
 
 type JobPosting = {
@@ -18,35 +12,17 @@ type JobPosting = {
   created_at: string;
 };
 
-export default function JobOffersPage() {
-  const [jobPostings, setJobPostings] = useState<JobPosting[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export default async function JobOffersPage() {
   const supabase = createClient();
-  const { toast } = useToast();
+  const { data: jobPostings, error } = await supabase
+    .from('jobPostings')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-  useEffect(() => {
-    const fetchJobs = async () => {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('jobPostings')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching jobs:', error.message);
-        toast({
-          variant: 'destructive',
-          title: 'Erreur de chargement',
-          description: "Impossible de récupérer les offres d'emploi.",
-        });
-      } else {
-        setJobPostings(data || []);
-      }
-      setIsLoading(false);
-    };
-
-    fetchJobs();
-  }, [supabase, toast]);
+  if (error) {
+    console.error("Error fetching job offers:", error.message);
+    // Render an error state or a message
+  }
 
   return (
     <>
@@ -57,18 +33,7 @@ export default function JobOffersPage() {
       <div className="container mx-auto max-w-7xl py-12 sm:py-16">
         <h2 className="font-headline text-3xl font-bold text-center mb-12">Postes actuellement ouverts</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {isLoading ? (
-            Array.from({ length: 3 }).map((_, index) => (
-              <Card key={index}>
-                <CardContent className="p-6 space-y-3">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-1/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <Skeleton className="h-10 w-1/3 mt-4" />
-                </CardContent>
-              </Card>
-            ))
-          ) : jobPostings.length > 0 ? (
+          {jobPostings && jobPostings.length > 0 ? (
             jobPostings.map((offer) => (
               <JobListing key={offer.id} offer={offer} />
             ))
