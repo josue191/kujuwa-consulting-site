@@ -36,7 +36,7 @@ Par défaut, Supabase restreint l'accès à vos tables. Pour que les formulaires
 #### Pour la table `contactFormSubmissions` :
 Permet à n'importe qui d'envoyer un message et aux administrateurs de les lire.
 ```sql
--- 1. Activer RLS pour la table
+-- 1. Activer RLS pour la table (si ce n'est pas déjà fait)
 ALTER TABLE public."contactFormSubmissions" ENABLE ROW LEVEL SECURITY;
 
 -- 2. Créer une politique pour autoriser l'insertion publique
@@ -45,7 +45,7 @@ ON public."contactFormSubmissions"
 FOR INSERT
 WITH CHECK (true);
 
--- 3. Créer une politique pour autoriser la lecture par les administrateurs
+-- 3. CRUCIAL : Créer une politique pour autoriser la lecture par les administrateurs
 CREATE POLICY "Allow read for authenticated users"
 ON public."contactFormSubmissions"
 FOR SELECT
@@ -55,7 +55,7 @@ USING (auth.role() = 'authenticated');
 #### Pour la table `applications` :
 Permet à n'importe qui de soumettre une candidature.
 ```sql
--- 1. Activer RLS pour la table
+-- 1. Activer RLS pour la table (si ce n'est pas déjà fait)
 ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
 
 -- 2. Créer une politique pour autoriser l'insertion publique
