@@ -1,4 +1,3 @@
-
 'use client';
 import { useState } from 'react';
 import {
@@ -59,7 +58,6 @@ type MessagesClientProps = {
 export default function MessagesClient({ submissions, totalSubmissions, page, itemsPerPage }: MessagesClientProps) {
   const { toast } = useToast();
   const router = useRouter();
-  const [currentSubmissions, setCurrentSubmissions] = useState(submissions);
   const [selectedSubmission, setSelectedSubmission] = useState<ContactSubmission | null>(null);
   const [submissionToDelete, setSubmissionToDelete] = useState<ContactSubmission | null>(null);
   const supabase = createClient();
@@ -135,8 +133,8 @@ export default function MessagesClient({ submissions, totalSubmissions, page, it
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {currentSubmissions.length > 0 ? (
-                currentSubmissions.map((submission) => (
+                {submissions.length > 0 ? (
+                submissions.map((submission) => (
                     <TableRow key={submission.id} onClick={() => setSelectedSubmission(submission)} className="cursor-pointer">
                     <TableCell className="font-medium">{submission.name}</TableCell>
                     <TableCell>{submission.email}</TableCell>
@@ -181,9 +179,9 @@ export default function MessagesClient({ submissions, totalSubmissions, page, it
 
       {/* Affichage sur petit écran (mobile) */}
       <div className="md:hidden space-y-4">
-         {currentSubmissions.length > 0 ? (
+         {submissions.length > 0 ? (
             <>
-            {currentSubmissions.map((submission) => (
+            {submissions.map((submission) => (
                 <Card key={submission.id} onClick={() => setSelectedSubmission(submission)} className="cursor-pointer hover:bg-muted/50">
                     <CardHeader>
                         <CardTitle className="text-base break-words">{submission.subject}</CardTitle>
