@@ -128,6 +128,7 @@ export default function MessagesClient({ submissions, totalSubmissions, page, it
                 <TableRow>
                 <TableHead>Nom</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Sujet</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -138,6 +139,7 @@ export default function MessagesClient({ submissions, totalSubmissions, page, it
                     <TableRow key={submission.id} onClick={() => setSelectedSubmission(submission)} className="cursor-pointer">
                     <TableCell className="font-medium">{submission.name}</TableCell>
                     <TableCell>{submission.email}</TableCell>
+                    <TableCell>{submission.subject}</TableCell>
                     <TableCell>
                         {submission.created_at
                         ? format(new Date(submission.created_at), 'dd/MM/yyyy HH:mm')
@@ -166,7 +168,7 @@ export default function MessagesClient({ submissions, totalSubmissions, page, it
                 ))
                 ) : (
                 <TableRow>
-                    <TableCell colSpan={4} className="text-center h-24">
+                    <TableCell colSpan={5} className="text-center h-24">
                         Aucun message pour le moment.
                     </TableCell>
                 </TableRow>
@@ -249,7 +251,7 @@ export default function MessagesClient({ submissions, totalSubmissions, page, it
             onOpenChange={() => setSubmissionToDelete(null)}
             onConfirm={handleDelete}
             title="Êtes-vous sûr de vouloir supprimer ce message ?"
-            description="Cette action est irréversible et supprimera définitivement le message de votre base de données."
+            description="Cette action est irréversible et supprimera définitivefsment le message de votre base de données."
             isPending={isDeleting}
           />
       )}
