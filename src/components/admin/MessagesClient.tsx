@@ -101,7 +101,7 @@ export default function MessagesClient({ submissions, totalSubmissions, page, it
             <Button
                 variant="outline"
                 size="sm"
-                onClick={() => router.push(`?page=${page - 1}`)}
+                onClick={() => router.push(`/admin/messages?page=${page - 1}`)}
                 disabled={page === 0}
             >
                 <ArrowLeft className="mr-2 h-4 w-4" /> Précédent
@@ -109,7 +109,7 @@ export default function MessagesClient({ submissions, totalSubmissions, page, it
             <Button
                 variant="outline"
                 size="sm"
-                onClick={() => router.push(`?page=${page + 1}`)}
+                onClick={() => router.push(`/admin/messages?page=${page + 1}`)}
                 disabled={page >= totalPages - 1}
             >
                 Suivant <ArrowRight className="ml-2 h-4 w-4" />
@@ -134,7 +134,7 @@ export default function MessagesClient({ submissions, totalSubmissions, page, it
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {submissions.length > 0 ? (
+                {submissions && submissions.length > 0 ? (
                 submissions.map((submission) => (
                     <TableRow key={submission.id} onClick={() => setSelectedSubmission(submission)} className="cursor-pointer">
                     <TableCell className="font-medium">{submission.name}</TableCell>
@@ -181,7 +181,7 @@ export default function MessagesClient({ submissions, totalSubmissions, page, it
 
       {/* Affichage sur petit écran (mobile) */}
       <div className="md:hidden space-y-4">
-         {submissions.length > 0 ? (
+         {submissions && submissions.length > 0 ? (
             <>
             {submissions.map((submission) => (
                 <Card key={submission.id} onClick={() => setSelectedSubmission(submission)} className="cursor-pointer hover:bg-muted/50">
@@ -251,7 +251,7 @@ export default function MessagesClient({ submissions, totalSubmissions, page, it
             onOpenChange={() => setSubmissionToDelete(null)}
             onConfirm={handleDelete}
             title="Êtes-vous sûr de vouloir supprimer ce message ?"
-            description="Cette action est irréversible et supprimera définitivefsment le message de votre base de données."
+            description="Cette action est irréversible et supprimera définitivement le message de votre base de données."
             isPending={isDeleting}
           />
       )}
