@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -37,7 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import DeleteConfirmationDialog from '@/components/admin/DeleteConfirmationDialog';
 
-type ContactSubmission = {
+export type ContactSubmission = {
   id: string;
   name: string;
   email: string;
@@ -46,49 +46,24 @@ type ContactSubmission = {
   created_at: string;
 }
 
-const ITEMS_PER_PAGE = 10;
+type MessagesPageContentProps = {
+  submissions: ContactSubmission[];
+  totalSubmissions: number;
+  page: number;
+  itemsPerPage: number;
+};
 
-export default function MessagesPage() {
+function MessagesPageContent({ submissions, totalSubmissions, page, itemsPerPage }: MessagesPageContentProps) {
   const { toast } = useToast();
-  const [submissions, setSubmissions] = useState<ContactSubmission[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [currentSubmissions, setCurrentSubmissions] = useState(submissions);
   const [selectedSubmission, setSelectedSubmission] = useState<ContactSubmission | null>(null);
   const [submissionToDelete, setSubmissionToDelete] = useState<ContactSubmission | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalSubmissions, setTotalSubmissions] = useState(0);
   const supabase = createClient();
-
-  useEffect(() => {
-    const fetchSubmissions = async () => {
-      setIsLoading(true);
-      const from = currentPage * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE - 1;
-
-      const { data, error, count } = await supabase
-        .from('contactFormSubmissions')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(from, to);
-
-      if (error) {
-        console.error('Error fetching submissions:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Erreur de chargement',
-          description: 'Impossible de récupérer les messages.',
-        });
-      } else {
-        setSubmissions(data || []);
-        setTotalSubmissions(count || 0);
-      }
-      setIsLoading(false);
-    };
-
-    fetchSubmissions();
-  }, [supabase, toast, currentPage]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
     if (!submissionToDelete) return;
+    setIsDeleting(true);
 
     const { error } = await supabase
       .from('contactFormSubmissions')
@@ -106,45 +81,33 @@ export default function MessagesPage() {
         title: 'Message supprimé',
         description: 'Le message a été supprimé avec succès.',
       });
-      // Rafraîchir les données
-      const from = currentPage * ITEMS_PER_PAGE;
-      const { data, count } = await supabase.from('contactFormSubmissions').select('*', { count: 'exact' }).range(from, from + ITEMS_PER_PAGE - 1).order('created_at', { ascending: false });
-      setSubmissions(data || []);
-      setTotalSubmissions(count || 0);
-
-      // Si c'était le dernier élément de la page, revenir à la page précédente
-      if (submissions.length === 1 && currentPage > 0) {
-        setCurrentPage(prev => prev - 1);
-      }
+      setCurrentSubmissions(currentSubmissions.filter(s => s.id !== submissionToDelete.id));
     }
     setSubmissionToDelete(null);
+    setIsDeleting(false);
   };
   
-  const totalPages = Math.ceil(totalSubmissions / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(totalSubmissions / itemsPerPage);
 
   const PaginationControls = () => (
      totalPages > 1 && (
         <div className="flex items-center justify-end space-x-2 py-4">
             <span className="text-sm text-muted-foreground">
-                Page {currentPage + 1} sur {totalPages}
+                Page {page + 1} sur {totalPages}
             </span>
             <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage(prev => prev - 1)}
-                disabled={currentPage === 0}
+                asChild
             >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Précédent
+                <a href={`?page=${page -1}`}><ArrowLeft className="mr-2 h-4 w-4" /> Précédent</a>
             </Button>
             <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage(prev => prev + 1)}
-                disabled={currentPage >= totalPages - 1}
+                asChild
             >
-                Suivant
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <a href={`?page=${page + 1}`}><ArrowRight className="ml-2 h-4 w-4" /> Suivant</a>
             </Button>
         </div>
       )
@@ -165,16 +128,8 @@ export default function MessagesPage() {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {isLoading ? (
-                <TableRow>
-                    <TableCell colSpan={4} className="text-center">
-                    <div className="flex justify-center items-center p-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                    </TableCell>
-                </TableRow>
-                ) : submissions && submissions.length > 0 ? (
-                submissions.map((submission) => (
+                {currentSubmissions.length > 0 ? (
+                currentSubmissions.map((submission) => (
                     <TableRow key={submission.id} onClick={() => setSelectedSubmission(submission)} className="cursor-pointer">
                     <TableCell className="font-medium">{submission.name}</TableCell>
                     <TableCell>{submission.email}</TableCell>
@@ -219,13 +174,9 @@ export default function MessagesPage() {
 
       {/* Affichage sur petit écran (mobile) */}
       <div className="md:hidden space-y-4">
-         {isLoading ? (
-            <div className="flex justify-center items-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-         ) : submissions && submissions.length > 0 ? (
+         {currentSubmissions.length > 0 ? (
             <>
-            {submissions.map((submission) => (
+            {currentSubmissions.map((submission) => (
                 <Card key={submission.id} onClick={() => setSelectedSubmission(submission)} className="cursor-pointer hover:bg-muted/50">
                     <CardHeader>
                         <CardTitle className="text-base break-words">{submission.subject}</CardTitle>
@@ -294,8 +245,35 @@ export default function MessagesPage() {
             onConfirm={handleDelete}
             title="Êtes-vous sûr de vouloir supprimer ce message ?"
             description="Cette action est irréversible et supprimera définitivement le message de votre base de données."
+            isPending={isDeleting}
           />
       )}
     </div>
   );
+}
+
+
+import { createClient } from '@/lib/supabase/server';
+
+const ITEMS_PER_PAGE = 10;
+
+export default async function MessagesPage({ searchParams }: { searchParams?: { page?: string }}) {
+  const supabase = createClient();
+  const page = searchParams?.page ? parseInt(searchParams.page, 10) : 0;
+  
+  const from = page * ITEMS_PER_PAGE;
+  const to = from + ITEMS_PER_PAGE - 1;
+
+  const { data, error, count } = await supabase
+    .from('contactFormSubmissions')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to);
+
+  if (error) {
+    console.error('Error fetching submissions:', error);
+    return <div>Erreur de chargement des messages.</div>
+  }
+
+  return <MessagesPageContent submissions={data || []} totalSubmissions={count || 0} page={page} itemsPerPage={ITEMS_PER_PAGE} />
 }
