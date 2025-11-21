@@ -38,20 +38,23 @@ Par défaut, Supabase restreint l'accès à vos tables. Pour que les formulaires
 
 #### Pour la table `contactFormSubmissions` :
 Permet à n'importe qui d'envoyer un message et aux administrateurs de les lire et de les supprimer.
+
 ```sql
--- 1. Activer RLS pour la table (si ce n'est pas déjà fait)
-ALTER TABLE public."contactFormSubmissions" ENABLE ROW LEVEL SECURITY;
+-- 1. (SI NÉCESSAIRE) Activer RLS pour la table
+-- ALTER TABLE public."contactFormSubmissions" ENABLE ROW LEVEL SECURITY;
 
--- 2. Créer une politique pour autoriser l'insertion publique
-CREATE POLICY "Allow public insert for anyone"
-ON public."contactFormSubmissions"
-FOR INSERT
-WITH CHECK (true);
+-- 2. (SI NÉCESSAIRE) Créer une politique pour autoriser l'insertion publique
+-- CREATE POLICY "Allow public insert for anyone"
+-- ON public."contactFormSubmissions"
+-- FOR INSERT
+-- WITH CHECK (true);
 
--- 3. CRUCIAL : Créer une politique pour autoriser la lecture ET la suppression par les administrateurs
+-- 3. CRUCIAL : Mettre à jour la politique pour autoriser LECTURE et SUPPRESSION par les administrateurs
+-- Cette commande remplace l'ancienne politique de lecture par une nouvelle qui inclut la suppression.
+-- Exécutez cette commande pour résoudre le problème.
 CREATE POLICY "Allow read and delete for authenticated users"
 ON public."contactFormSubmissions"
-FOR ALL
+FOR ALL -- 'ALL' inclut SELECT, INSERT, UPDATE, DELETE
 USING (auth.role() = 'authenticated')
 WITH CHECK (auth.role() = 'authenticated');
 ```
@@ -71,7 +74,7 @@ WITH CHECK (true);
 
 ### 3. Modèles d'E-mail Supabase
 
-Cette étape n'est plus nécessaire si vous utilisez la création directe d'utilisateurs.
+Cette étape n'est plus nécessaire car vous créez les utilisateurs directement.
 
 ---
 
