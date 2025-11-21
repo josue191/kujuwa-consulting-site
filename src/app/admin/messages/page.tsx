@@ -253,12 +253,12 @@ function MessagesPageContent({ submissions, totalSubmissions, page, itemsPerPage
 }
 
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 
 const ITEMS_PER_PAGE = 10;
 
 export default async function MessagesPage({ searchParams }: { searchParams?: { page?: string }}) {
-  const supabase = createClient();
+  const supabase = createServerClient();
   const page = searchParams?.page ? parseInt(searchParams.page, 10) : 0;
   
   const from = page * ITEMS_PER_PAGE;
