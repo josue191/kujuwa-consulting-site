@@ -30,6 +30,7 @@ export async function deleteMessage(id: string) {
       .match({ id });
 
     if (error) {
+        console.error('Erreur de suppression Supabase:', error);
         return { error: error.message };
     }
 
