@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 
 export async function getMessages(page: number, pageSize: number) {
@@ -8,6 +9,7 @@ export async function getMessages(page: number, pageSize: number) {
   const from = page * pageSize;
   const to = from + pageSize - 1;
 
+  // For reading, we can still use RLS with the user's session
   const { data, error, count } = await supabase
     .from('contactFormSubmissions')
     .select('*', { count: 'exact' })
@@ -22,16 +24,17 @@ export async function getMessages(page: number, pageSize: number) {
 }
 
 export async function deleteMessage(id: string) {
-    const supabase = createClient();
+    // Use the admin client for delete operations
+    const supabaseAdmin = createAdminClient();
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('contactFormSubmissions')
       .delete()
       .match({ id });
 
     if (error) {
         console.error('Erreur de suppression Supabase:', error);
-        return { error: error.message };
+        return { error: `La suppression a échoué: ${error.message}` };
     }
 
     revalidatePath('/admin/messages');

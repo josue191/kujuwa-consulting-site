@@ -1,8 +1,7 @@
 'use server';
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { z } from 'zod';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 const formSchema = z.object({
   email: z.string().email(),
@@ -10,27 +9,7 @@ const formSchema = z.object({
 });
 
 export async function createAdminUser(values: z.infer<typeof formSchema>) {
-    const cookieStore = cookies();
-
-    // IMPORTANT: This client uses the service_role key for admin operations
-    const supabaseAdmin = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              return cookieStore.get(name)?.value
-            },
-            set(name: string, value: string, options: CookieOptions) {
-              // This is a server action, so we don't need to set cookies
-              // as the admin client won't be authenticating a user session here.
-            },
-            remove(name: string, options: CookieOptions) {
-               // This is a server action, so we don't need to remove cookies.
-            },
-          },
-        }
-    );
+    const supabaseAdmin = createAdminClient();
 
     const validatedFields = formSchema.safeParse(values);
 
