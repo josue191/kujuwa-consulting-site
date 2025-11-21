@@ -22,7 +22,10 @@ Vous devez configurer les variables d'environnement suivantes sur votre platefor
 ```
 NEXT_PUBLIC_SUPABASE_URL=VOTRE_URL_SUPABASE
 NEXT_PUBLIC_SUPABASE_ANON_KEY=VOTRE_CLE_ANON_SUPABASE
+SUPABASE_SERVICE_ROLE_KEY=VOTRE_CLE_SERVICE_ROLE
 ```
+
+**IMPORTANT :** La `SUPABASE_SERVICE_ROLE_KEY` est secrète et ne doit jamais être exposée côté client. Elle est utilisée pour les actions d'administration (comme la création d'utilisateurs). Vous la trouverez dans `Project Settings > API` dans votre tableau de bord Supabase.
 
 ### 2. Politiques de Sécurité Supabase (RLS)
 
@@ -67,11 +70,8 @@ WITH CHECK (true);
 
 ### 3. Modèles d'E-mail Supabase
 
-Pour que la fonctionnalité d'invitation d'administrateurs fonctionne :
-1.  Allez dans votre projet Supabase.
-2.  Allez dans `Authentication -> Email Templates`.
-3.  Trouvez le modèle **"Invite User"** et activez-le.
+Cette étape n'est plus nécessaire si vous utilisez la création directe d'utilisateurs.
 
 ---
 
-Une fois ces trois étapes complétées, votre application sera pleinement fonctionnelle en production.
+Une fois ces étapes complétées, votre application sera pleinement fonctionnelle en production.

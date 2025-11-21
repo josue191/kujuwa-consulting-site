@@ -1,6 +1,7 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { z } from 'zod';
 
 const formSchema = z.object({
@@ -9,7 +10,27 @@ const formSchema = z.object({
 });
 
 export async function createAdminUser(values: z.infer<typeof formSchema>) {
-    const supabase = createClient();
+    const cookieStore = cookies();
+
+    // IMPORTANT: This client uses the service_role key for admin operations
+    const supabaseAdmin = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          cookies: {
+            get(name: string) {
+              return cookieStore.get(name)?.value
+            },
+            set(name: string, value: string, options: CookieOptions) {
+              // This is a server action, so we don't need to set cookies
+              // as the admin client won't be authenticating a user session here.
+            },
+            remove(name: string, options: CookieOptions) {
+               // This is a server action, so we don't need to remove cookies.
+            },
+          },
+        }
+    );
 
     const validatedFields = formSchema.safeParse(values);
 
@@ -19,11 +40,11 @@ export async function createAdminUser(values: z.infer<typeof formSchema>) {
 
     const { email, password } = validatedFields.data;
 
-    // Utilisation de la méthode admin pour créer un utilisateur sans envoyer d'email d'invitation
-    const { data, error } = await supabase.auth.admin.createUser({
+    // Use the admin client to create a user
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
         email: email,
         password: password,
-        email_confirm: true, // Confirme automatiquement l'email pour que l'utilisateur puisse se connecter
+        email_confirm: true, // Automatically confirm the email
     });
 
     if (error) {
