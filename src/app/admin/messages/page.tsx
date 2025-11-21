@@ -1,6 +1,5 @@
-
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import {
   Table,
   TableBody,
@@ -35,9 +34,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { createClient } from '@/lib/supabase/client';
 import DeleteConfirmationDialog from '@/components/admin/DeleteConfirmationDialog';
-import { useRouter } from 'next/navigation';
+import { getMessages, deleteMessage } from '@/lib/actions/messages';
 
 export type ContactSubmission = {
   id: string;
@@ -55,88 +53,72 @@ export default function MessagesPage() {
   const [totalSubmissions, setTotalSubmissions] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-
-  const { toast } = useToast();
-  const router = useRouter();
   const [selectedSubmission, setSelectedSubmission] = useState<ContactSubmission | null>(null);
   const [submissionToDelete, setSubmissionToDelete] = useState<ContactSubmission | null>(null);
-  const supabase = createClient();
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleting, startDeleteTransition] = useTransition();
+
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchMessages = async () => {
       setIsLoading(true);
-      const from = currentPage * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE - 1;
-
-      const { data, error, count } = await supabase
-        .from('contactFormSubmissions')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(from, to);
+      const result = await getMessages(currentPage, ITEMS_PER_PAGE);
       
-      if (error) {
-        console.error('Error fetching submissions:', error);
+      if (result.error) {
+        console.error('Error fetching submissions:', result.error);
         toast({
           variant: 'destructive',
           title: 'Erreur de chargement des messages',
-          description: error.message,
+          description: result.error,
         });
       } else {
-        setSubmissions(data || []);
-        setTotalSubmissions(count || 0);
+        setSubmissions(result.data || []);
+        setTotalSubmissions(result.count || 0);
       }
       setIsLoading(false);
     };
 
     fetchMessages();
-  }, [currentPage, supabase, toast]);
+  }, [currentPage, toast]);
 
   const handleDelete = async () => {
     if (!submissionToDelete) return;
-    setIsDeleting(true);
+    
+    startDeleteTransition(async () => {
+      const result = await deleteMessage(submissionToDelete.id);
 
-    const { error } = await supabase
-      .from('contactFormSubmissions')
-      .delete()
-      .match({ id: submissionToDelete.id });
-
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur de suppression',
-        description: 'Le message n\'a pas pu être supprimé.',
-      });
-    } else {
-      toast({
-        title: 'Message supprimé',
-        description: 'Le message a été supprimé avec succès.',
-      });
-      // Refresh data
-      const newTotal = totalSubmissions - 1;
-      const newTotalPages = Math.ceil(newTotal / ITEMS_PER_PAGE);
-      if (currentPage >= newTotalPages && currentPage > 0) {
-        setCurrentPage(currentPage - 1);
+      if (result.error) {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur de suppression',
+          description: result.error,
+        });
       } else {
-         // Re-fetch current page
-         const fetchMessages = async () => {
-            const from = currentPage * ITEMS_PER_PAGE;
-            const to = from + ITEMS_PER_PAGE - 1;
-            const { data, error, count } = await supabase
-                .from('contactFormSubmissions')
-                .select('*', { count: 'exact' })
-                .order('created_at', { ascending: false })
-                .range(from, to);
-            if (!error) {
-                setSubmissions(data || []);
-                setTotalSubmissions(count || 0);
-            }
-         };
-         fetchMessages();
+        toast({
+          title: 'Message supprimé',
+          description: 'Le message a été supprimé avec succès.',
+        });
+        
+        // Refresh data
+        const newTotal = totalSubmissions - 1;
+        setTotalSubmissions(newTotal);
+
+        const newTotalPages = Math.ceil(newTotal / ITEMS_PER_PAGE);
+        const newCurrentPage = Math.min(currentPage, Math.max(0, newTotalPages - 1));
+
+        if (currentPage !== newCurrentPage) {
+          setCurrentPage(newCurrentPage);
+        } else {
+          // If we are on the same page, just filter out the deleted item
+          setSubmissions(submissions.filter(sub => sub.id !== submissionToDelete.id));
+           if (submissions.filter(sub => sub.id !== submissionToDelete.id).length === 0 && newTotal > 0) {
+              const prevPage = Math.max(0, currentPage - 1);
+              setCurrentPage(prevPage);
+           }
+        }
       }
-    }
-    setSubmissionToDelete(null);
-    setIsDeleting(false);
+      setSubmissionToDelete(null);
+    });
   };
   
   const totalPages = Math.ceil(totalSubmissions / ITEMS_PER_PAGE);
@@ -151,7 +133,7 @@ export default function MessagesPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage(prev => prev - 1)}
-                disabled={currentPage === 0}
+                disabled={currentPage === 0 || isLoading}
             >
                 <ArrowLeft className="mr-2 h-4 w-4" /> Précédent
             </Button>
@@ -159,7 +141,7 @@ export default function MessagesPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage(prev => prev + 1)}
-                disabled={currentPage >= totalPages - 1}
+                disabled={currentPage >= totalPages - 1 || isLoading}
             >
                 Suivant <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -315,5 +297,3 @@ export default function MessagesPage() {
     </div>
   );
 }
-
-    
