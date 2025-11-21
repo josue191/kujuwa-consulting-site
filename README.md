@@ -37,7 +37,7 @@ Par défaut, Supabase restreint l'accès à vos tables. Pour que les formulaires
 4.  Allez dans le `SQL Editor` et exécutez les commandes suivantes pour créer les politiques nécessaires.
 
 #### Pour la table `contactFormSubmissions` :
-Permet à n'importe qui d'envoyer un message et aux administrateurs de les lire.
+Permet à n'importe qui d'envoyer un message et aux administrateurs de les lire et de les supprimer.
 ```sql
 -- 1. Activer RLS pour la table (si ce n'est pas déjà fait)
 ALTER TABLE public."contactFormSubmissions" ENABLE ROW LEVEL SECURITY;
@@ -48,11 +48,12 @@ ON public."contactFormSubmissions"
 FOR INSERT
 WITH CHECK (true);
 
--- 3. CRUCIAL : Créer une politique pour autoriser la lecture par les administrateurs
-CREATE POLICY "Allow read for authenticated users"
+-- 3. CRUCIAL : Créer une politique pour autoriser la lecture ET la suppression par les administrateurs
+CREATE POLICY "Allow read and delete for authenticated users"
 ON public."contactFormSubmissions"
-FOR SELECT
-USING (auth.role() = 'authenticated');
+FOR ALL
+USING (auth.role() = 'authenticated')
+WITH CHECK (auth.role() = 'authenticated');
 ```
 
 #### Pour la table `applications` :
