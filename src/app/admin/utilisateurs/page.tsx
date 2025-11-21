@@ -23,41 +23,43 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { createAdminUser } from '@/lib/actions/users';
+
 
 const formSchema = z.object({
   email: z.string().email({ message: "Veuillez entrer une adresse email valide." }),
+  password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères." }),
 });
 
 export default function UtilisateursPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isSubmitting, startSubmitTransition] = useTransition();
 
-    const supabase = createClient();
     const { toast } = useToast();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
           email: '',
+          password: '',
         },
     });
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         startSubmitTransition(async () => {
-            const { error } = await supabase.auth.admin.inviteUserByEmail(values.email);
+            const result = await createAdminUser(values);
 
-            if (error) {
+            if (result.error) {
                 toast({
                     variant: 'destructive',
-                    title: "Erreur lors de l'invitation",
-                    description: `Cette action requiert des privilèges d'administrateur. ${error.message}`,
+                    title: "Erreur lors de la création",
+                    description: result.error,
                 });
             } else {
                 toast({
-                    title: 'Invitation envoyée',
-                    description: `Un e-mail d'invitation a été envoyé à ${values.email}.`,
+                    title: 'Utilisateur créé',
+                    description: `L'utilisateur ${values.email} a été ajouté avec succès.`,
                 });
                 setIsFormOpen(false);
                 form.reset();
@@ -76,15 +78,11 @@ export default function UtilisateursPage() {
                 </CardHeader>
                 <CardContent className="text-center space-y-6">
                     <p className="text-muted-foreground">
-                        Invitez de nouveaux utilisateurs pour leur donner accès au panneau d'administration. Ils recevront un e-mail avec les instructions pour créer leur compte.
+                        Ajoutez de nouveaux utilisateurs pour leur donner accès au panneau d'administration en leur créant un compte.
                     </p>
-                    <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded-r-lg text-left text-sm">
-                        <h4 className="font-bold">Information importante</h4>
-                        <p>Pour que cette fonctionnalité marche, activez le modèle d'e-mail **"Invite user"** dans les paramètres d'authentification de votre projet Supabase.</p>
-                    </div>
                     <Button onClick={() => setIsFormOpen(true)} size="lg">
                         <PlusCircle className="mr-2 h-5 w-5" />
-                        Inviter un nouvel utilisateur
+                        Ajouter un nouvel utilisateur
                     </Button>
                 </CardContent>
             </Card>
@@ -94,9 +92,9 @@ export default function UtilisateursPage() {
                 <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                     <DialogContent className="sm:max-w-[425px]">
                         <DialogHeader>
-                            <DialogTitle>Inviter un nouvel utilisateur</DialogTitle>
+                            <DialogTitle>Ajouter un nouvel utilisateur</DialogTitle>
                             <DialogDescription>
-                                L'utilisateur recevra un e-mail avec un lien pour créer son compte et définir son mot de passe.
+                                Créez un compte administrateur. Vous devrez communiquer le mot de passe au nouvel utilisateur.
                             </DialogDescription>
                         </DialogHeader>
                         <Form {...form}>
@@ -108,7 +106,20 @@ export default function UtilisateursPage() {
                                         <FormItem>
                                         <FormLabel>Adresse e-mail</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="nom@exemple.com" {...field} />
+                                            <Input type="email" placeholder="nom@exemple.com" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="password"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Mot de passe</FormLabel>
+                                        <FormControl>
+                                            <Input type="password" placeholder="Mot de passe" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                         </FormItem>
@@ -117,7 +128,7 @@ export default function UtilisateursPage() {
                                 <DialogFooter>
                                     <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annuler</Button>
                                     <Button type="submit" disabled={isSubmitting}>
-                                        {isSubmitting ? 'Envoi en cours...' : 'Envoyer l\'invitation'}
+                                        {isSubmitting ? 'Création en cours...' : 'Créer l\'utilisateur'}
                                     </Button>
                                 </DialogFooter>
                             </form>
