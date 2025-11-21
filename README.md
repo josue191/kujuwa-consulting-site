@@ -29,7 +29,7 @@ SUPABASE_SERVICE_ROLE_KEY=VOTRE_CLE_SERVICE_ROLE
 
 ### 2. Politiques de Sécurité Supabase (RLS)
 
-Par défaut, Supabase restreint l'accès à vos tables. Pour que les formulaires de contact et de candidature fonctionnent publiquement, vous **devez** activer les politiques de sécurité (RLS) et créer des règles pour autoriser les insertions.
+Par défaut, Supabase restreint l'accès à vos tables. Pour que les formulaires de contact et de candidature fonctionnent publiquement, vous **devez** activer les politiques de sécurité (RLS) et créer des règles pour autoriser les insertions et la gestion.
 
 1.  Allez dans votre projet Supabase.
 2.  Allez dans `Authentication -> Policies`.
@@ -40,19 +40,16 @@ Par défaut, Supabase restreint l'accès à vos tables. Pour que les formulaires
 Permet à n'importe qui d'envoyer un message et aux administrateurs de les lire et de les supprimer.
 
 ```sql
--- 1. (SI NÉCESSAIRE) Activer RLS pour la table
--- ALTER TABLE public."contactFormSubmissions" ENABLE ROW LEVEL SECURITY;
+-- 1. Permettre à n'importe qui d'insérer un message (visiteurs publics)
+-- Exécutez cette commande si la politique n'existe pas déjà.
+CREATE POLICY "Allow public insert for anyone"
+ON public."contactFormSubmissions"
+FOR INSERT
+WITH CHECK (true);
 
--- 2. (SI NÉCESSAIRE) Créer une politique pour autoriser l'insertion publique
--- CREATE POLICY "Allow public insert for anyone"
--- ON public."contactFormSubmissions"
--- FOR INSERT
--- WITH CHECK (true);
-
--- 3. CRUCIAL : Mettre à jour la politique pour autoriser LECTURE et SUPPRESSION par les administrateurs
--- Cette commande remplace l'ancienne politique de lecture par une nouvelle qui inclut la suppression.
--- Exécutez cette commande pour résoudre le problème.
-CREATE POLICY "Allow read and delete for authenticated users"
+-- 2. Permettre aux admins de tout gérer (lire, supprimer, etc.)
+-- Utilise CREATE OR REPLACE pour éviter les erreurs si la politique existe déjà.
+CREATE OR REPLACE POLICY "Allow all actions for authenticated users"
 ON public."contactFormSubmissions"
 FOR ALL -- 'ALL' inclut SELECT, INSERT, UPDATE, DELETE
 USING (auth.role() = 'authenticated')
@@ -60,16 +57,25 @@ WITH CHECK (auth.role() = 'authenticated');
 ```
 
 #### Pour la table `applications` :
-Permet à n'importe qui de soumettre une candidature.
+Permet à n'importe qui de soumettre une candidature et aux administrateurs de les gérer.
 ```sql
 -- 1. Activer RLS pour la table (si ce n'est pas déjà fait)
 ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
 
--- 2. Créer une politique pour autoriser l'insertion publique
+-- 2. Permettre l'insertion publique pour les candidats
+-- Exécutez cette commande si la politique n'existe pas déjà.
 CREATE POLICY "Allow public insert for anyone"
 ON public.applications
 FOR INSERT
 WITH CHECK (true);
+
+-- 3. (NOUVEAU) Permettre aux admins de lire et supprimer les candidatures
+-- Cette politique est essentielle pour le panneau d'administration.
+CREATE OR REPLACE POLICY "Allow all actions for authenticated users"
+ON public.applications
+FOR ALL
+USING (auth.role() = 'authenticated')
+WITH CHECK (auth.role() = 'authenticated');
 ```
 
 ### 3. Modèles d'E-mail Supabase
