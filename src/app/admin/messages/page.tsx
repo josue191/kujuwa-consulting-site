@@ -59,27 +59,27 @@ export default function MessagesPage() {
 
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchMessages = async () => {
-      setIsLoading(true);
-      const result = await getMessages(currentPage, ITEMS_PER_PAGE);
-      
-      if (result.error) {
-        console.error('Error fetching submissions:', result.error);
-        toast({
-          variant: 'destructive',
-          title: 'Erreur de chargement des messages',
-          description: result.error,
-        });
-      } else {
-        setSubmissions(result.data || []);
-        setTotalSubmissions(result.count || 0);
-      }
-      setIsLoading(false);
-    };
+  const fetchMessages = async (page: number) => {
+    setIsLoading(true);
+    const result = await getMessages(page, ITEMS_PER_PAGE);
+    
+    if (result.error) {
+      console.error('Error fetching submissions:', result.error);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur de chargement des messages',
+        description: result.error,
+      });
+    } else {
+      setSubmissions(result.data || []);
+      setTotalSubmissions(result.count || 0);
+    }
+    setIsLoading(false);
+  };
 
-    fetchMessages();
-  }, [currentPage, toast]);
+  useEffect(() => {
+    fetchMessages(currentPage);
+  }, [currentPage]);
 
   const handleDelete = async () => {
     if (!submissionToDelete) return;
@@ -99,22 +99,15 @@ export default function MessagesPage() {
           description: 'Le message a été supprimé avec succès.',
         });
         
-        // Refresh data
         const newTotal = totalSubmissions - 1;
         setTotalSubmissions(newTotal);
 
-        const newTotalPages = Math.ceil(newTotal / ITEMS_PER_PAGE);
-        const newCurrentPage = Math.min(currentPage, Math.max(0, newTotalPages - 1));
-
-        if (currentPage !== newCurrentPage) {
-          setCurrentPage(newCurrentPage);
+        // Si la page actuelle devient vide et que ce n'est pas la première page, retournez à la page précédente
+        if (submissions.length === 1 && currentPage > 0) {
+            setCurrentPage(currentPage - 1);
         } else {
-          // If we are on the same page, just filter out the deleted item
-          setSubmissions(submissions.filter(sub => sub.id !== submissionToDelete.id));
-           if (submissions.filter(sub => sub.id !== submissionToDelete.id).length === 0 && newTotal > 0) {
-              const prevPage = Math.max(0, currentPage - 1);
-              setCurrentPage(prevPage);
-           }
+            // Sinon, rafraîchissez simplement la page actuelle pour obtenir les données à jour
+            fetchMessages(currentPage);
         }
       }
       setSubmissionToDelete(null);
