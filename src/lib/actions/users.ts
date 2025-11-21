@@ -19,10 +19,11 @@ export async function createAdminUser(values: z.infer<typeof formSchema>) {
 
     const { email, password } = validatedFields.data;
 
+    // Utilisation de la méthode admin pour créer un utilisateur sans envoyer d'email d'invitation
     const { data, error } = await supabase.auth.admin.createUser({
         email: email,
         password: password,
-        email_confirm: true, // Auto-confirme l'email pour que l'utilisateur puisse se connecter directement
+        email_confirm: true, // Confirme automatiquement l'email pour que l'utilisateur puisse se connecter
     });
 
     if (error) {
