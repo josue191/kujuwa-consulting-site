@@ -89,7 +89,7 @@ export default function CandidaturesPage() {
     if (!applicationToDelete) return;
 
     startTransition(async () => {
-      // 1. Delete the CV file from storage
+      // 1. Try to delete the CV file from storage, but don't block if it fails
       const cvUrl = applicationToDelete.cv_url;
       const fileName = cvUrl.split('/').pop();
 
@@ -98,15 +98,13 @@ export default function CandidaturesPage() {
               .from('cvs')
               .remove([fileName]);
           
-          if (storageError) {
+          if (storageError && storageError.message !== 'The resource was not found') {
               console.error("Error deleting CV file:", storageError.message);
               toast({
                   variant: 'destructive',
                   title: 'Erreur de suppression du CV',
-                  description: `Le fichier CV n'a pas pu être supprimé : ${storageError.message}`,
+                  description: `Le fichier CV n'a pas pu être supprimé, mais nous allons quand même supprimer la candidature: ${storageError.message}`,
               });
-              setApplicationToDelete(null);
-              return;
           }
       }
 
@@ -128,13 +126,15 @@ export default function CandidaturesPage() {
           description: 'La candidature a été supprimée avec succès.',
         });
         
-        const newTotalPages = Math.ceil((totalApplications - 1) / ITEMS_PER_PAGE);
-        const newCurrentPage = Math.min(currentPage, Math.max(0, newTotalPages - 1));
+        const newTotal = totalApplications - 1;
+        setTotalApplications(newTotal);
 
-        if (newCurrentPage !== currentPage) {
-            setCurrentPage(newCurrentPage);
+        // If the current page becomes empty and it's not the first page, go to the previous page
+        if (applications.length === 1 && currentPage > 0) {
+            setCurrentPage(currentPage - 1);
         } else {
-            fetchApplications(newCurrentPage);
+            // Otherwise, just refresh the current page
+            fetchApplications(currentPage);
         }
       }
       setApplicationToDelete(null);
