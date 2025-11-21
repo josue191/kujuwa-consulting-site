@@ -13,7 +13,7 @@ Ceci est une application Next.js pour le site de Kujuwa Consulting.
 
 ## Guide de Déploiement
 
-L'application est prête pour le déploiement. Cependant, quelques étapes de configuration sont **cruciales** pour que tout fonctionne en production.
+L'application est prête pour le déploiement. Cependant, quelques étapes de configuration sont **cruciales** pour que tout fonctionne in production.
 
 ### 1. Variables d'Environnement
 
@@ -70,7 +70,7 @@ WITH CHECK (true);
 Pour que la fonctionnalité d'invitation d'administrateurs fonctionne :
 1.  Allez dans votre projet Supabase.
 2.  Allez dans `Authentication -> Email Templates`.
-3.  Activez le modèle **"Invite User"**.
+3.  Trouvez le modèle **"Invite User"** et activez-le.
 
 ---
 
