@@ -12,6 +12,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/',
     '/qui-sommes-nous',
     '/nos-services',
+    '/nos-services/consultance',
+    '/nos-services/transport',
+    '/nos-services/immobilier',
+    '/nos-services/construction',
+    '/nos-services/papeterie',
+    '/nos-services/agro-commerce',
+    '/nos-services/mecanique',
     '/nos-realisations',
     '/offres-d-emploi',
     '/contact',
@@ -38,19 +45,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     })) ?? [];
     
-   // 3. Services dynamiques
-  const { data: services } = await supabase
-    .from('services')
+   // 3. Projets/Réalisations dynamiques
+  const { data: projects } = await supabase
+    .from('projects')
     .select('id, created_at');
 
-  const serviceUrls =
-    services?.map(({ id, created_at }) => ({
-      url: `${BASE_URL}/nos-services/${id}`,
+  const projectUrls =
+    projects?.map(({ id, created_at }) => ({
+      url: `${BASE_URL}/nos-realisations/${id}`,
       lastModified: new Date(created_at),
       changeFrequency: 'monthly' as const,
       priority: 0.9,
     })) ?? [];
 
 
-  return [...staticUrls, ...jobUrls, ...serviceUrls];
+  return [...staticUrls, ...jobUrls, ...projectUrls];
 }
