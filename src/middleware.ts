@@ -1,13 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { updateSession } from './lib/supabase/middleware';
+import { updateSession } from '@/lib/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
-  const { supabase, response } = createClient(request);
-
-  // Refresh session if expired - required for Server Components
-  // https://supabase.com/docs/guides/auth/auth-helpers/nextjs#managing-session-with-middleware
-  const { data: { session } } = await supabase.auth.getSession();
+  // This will create a Supabase client and refresh the session if needed.
+  // It will also pass the refreshed session to Server Components.
+  const { response, supabase } = await updateSession(request);
 
   const {
     data: { user },
@@ -25,49 +22,8 @@ export async function middleware(request: NextRequest) {
      return NextResponse.redirect(new URL('/admin', request.url));
   }
 
-  return await updateSession(request);
+  return response;
 }
-
-function createClient(request: NextRequest) {
-    let response = NextResponse.next({
-        request: {
-        headers: request.headers,
-        },
-    });
-
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-        cookies: {
-            get(name: string) {
-            return request.cookies.get(name)?.value;
-            },
-            set(name: string, value: string, options: CookieOptions) {
-            request.cookies.set({ name, value, ...options });
-            response = NextResponse.next({
-                request: {
-                headers: request.headers,
-                },
-            });
-            response.cookies.set({ name, value, ...options });
-            },
-            remove(name: string, options: CookieOptions) {
-            request.cookies.set({ name, value: '', ...options });
-            response = NextResponse.next({
-                request: {
-                headers: request.headers,
-                },
-            });
-            response.cookies.set({ name, value: '', ...options });
-            },
-        },
-        }
-    );
-
-    return { supabase, response };
-}
-
 
 export const config = {
   matcher: [
