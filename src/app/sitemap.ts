@@ -45,18 +45,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     })) ?? [];
     
-   // 3. Projets/Réalisations dynamiques
+   // 3. Projets/Réalisations dynamiques (page principale uniquement, pas de pages de détail)
   const { data: projects } = await supabase
     .from('projects')
     .select('id, created_at');
 
-  const projectUrls =
-    projects?.map(({ id, created_at }) => ({
-      url: `${BASE_URL}/nos-realisations/${id}`,
-      lastModified: new Date(created_at),
-      changeFrequency: 'monthly' as const,
-      priority: 0.9,
-    })) ?? [];
+  // Pas d'URL individuelles pour les projets pour le moment
+  const projectUrls: MetadataRoute.Sitemap = [];
 
 
   return [...staticUrls, ...jobUrls, ...projectUrls];
