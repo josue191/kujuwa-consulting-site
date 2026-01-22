@@ -1,3 +1,4 @@
+'use server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
@@ -6,13 +7,20 @@ import { cookies } from 'next/headers';
 export function createAdminClient() {
   const cookieStore = cookies();
 
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("La variable d'environnement SUPABASE_SERVICE_ROLE_KEY est manquante. Elle est requise pour les opérations d'administration.");
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error("La variable d'environnement NEXT_PUBLIC_SUPABASE_URL est manquante. Veuillez l'ajouter à votre environnement de production.");
+  }
+
+  if (!serviceRoleKey) {
+    throw new Error("La variable d'environnement SUPABASE_SERVICE_ROLE_KEY est manquante. Elle est requise pour les opérations d'administration. Veuillez l'ajouter à votre environnement de production.");
   }
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    supabaseUrl,
+    serviceRoleKey,
     {
       cookies: {
         get(name: string) {
