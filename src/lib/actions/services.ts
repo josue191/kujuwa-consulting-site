@@ -100,7 +100,7 @@ export async function deleteService(service: { id: string; image_url: string | n
         revalidatePath('/nos-services');
 
         return { success: true, message: 'Service supprimé.' };
-    } catch (error: any) => {
+    } catch (error: any) {
         console.error("Delete service error:", error);
         return { success: false, message: error.message || "La suppression a échoué." };
     }
