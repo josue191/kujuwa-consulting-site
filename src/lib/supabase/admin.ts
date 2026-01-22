@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 
 // This function creates a Supabase client with the service_role key for admin operations.
 // It should only be used in Server Actions and Server Components where admin rights are required.
-export function createAdminClient() {
+export async function createAdminClient() {
   const cookieStore = cookies();
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
