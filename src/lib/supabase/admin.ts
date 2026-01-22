@@ -6,6 +6,10 @@ import { cookies } from 'next/headers';
 export function createAdminClient() {
   const cookieStore = cookies();
 
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("La variable d'environnement SUPABASE_SERVICE_ROLE_KEY est manquante. Elle est requise pour les opérations d'administration.");
+  }
+
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,

@@ -1,7 +1,6 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 
 export async function getMessages(page: number, pageSize: number) {
@@ -24,10 +23,10 @@ export async function getMessages(page: number, pageSize: number) {
 }
 
 export async function deleteMessage(id: string) {
-    // Use the admin client for delete operations
-    const supabaseAdmin = createAdminClient();
+    // We can use the user-session server client because the RLS policy allows any authenticated user to delete.
+    const supabase = createClient();
 
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('contactFormSubmissions')
       .delete()
       .match({ id });
