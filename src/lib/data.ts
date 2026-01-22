@@ -61,7 +61,7 @@ export const serviceIntros = [
 ];
 
 export const contactDetails = {
-  email: 'elkikabus@gmail.com',
+  email: 'contact@kujuwa-consulting-elbu.com',
   phones: ['+243 971 594 070', '+243 975 409 370'],
   addresses: [
     {
