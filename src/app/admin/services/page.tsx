@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, PlusCircle, Loader2, Trash2, Edit } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -18,16 +18,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import {
   Dialog,
   DialogContent,
@@ -39,7 +29,6 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { v4 as uuidv4 } from 'uuid';
 import {
     Form,
     FormControl,
@@ -54,6 +43,8 @@ import { iconMap } from '@/lib/icon-map';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { saveService, deleteService } from '@/lib/actions/services';
+import DeleteConfirmationDialog from '@/components/admin/DeleteConfirmationDialog';
 
 type Service = {
   id: string;
@@ -71,10 +62,10 @@ const formSchema = z.object({
   imageFile: z
     .any()
     .optional()
-    .refine((files) => !files || files?.length === 1, "Vous ne pouvez téléverser qu'un seul fichier.")
-    .refine((files) => !files || files?.[0]?.size <= 5000000, `La taille max est 5MB.`)
+    .refine((files) => !files || files?.length === 0 || files?.length === 1, "Vous ne pouvez téléverser qu'un seul fichier.")
+    .refine((files) => !files || files?.length === 0 || files?.[0]?.size <= 5000000, `La taille max est 5MB.`)
     .refine(
-      (files) => !files || ['image/jpeg', 'image/png', 'image/webp'].includes(files?.[0]?.type),
+      (files) => !files || files?.length === 0 || ['image/jpeg', 'image/png', 'image/webp'].includes(files?.[0]?.type),
       "Formats supportés: .jpg, .png, .webp"
     ),
 });
@@ -85,6 +76,7 @@ export default function ServicesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const supabase = createClient();
   const { toast } = useToast();
@@ -106,7 +98,6 @@ export default function ServicesPage() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching services:', error.message);
       toast({
         variant: 'destructive',
         title: 'Erreur de chargement',
@@ -122,6 +113,20 @@ export default function ServicesPage() {
     fetchServices();
   }, [supabase, toast]);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('services_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' },
+        (payload) => {
+           fetchServices();
+        }
+      ).subscribe();
+  
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
   const handleEdit = (service: Service) => {
     setEditingService(service);
     form.reset({
@@ -129,6 +134,7 @@ export default function ServicesPage() {
         description: service.description,
         icon: service.icon
     });
+    form.setValue('imageFile', undefined);
     setIsFormOpen(true);
   };
 
@@ -139,112 +145,48 @@ export default function ServicesPage() {
         description: '',
         icon: ''
     });
+    form.setValue('imageFile', undefined);
     setIsFormOpen(true);
-  };
-  
-  const generateSlug = (title: string) => {
-    return title
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    let imageUrl = editingService?.image_url || null;
+    startTransition(async () => {
+        const formData = new FormData();
+        if (editingService) {
+            formData.append('id', editingService.id);
+            formData.append('current_image_url', editingService.image_url || '');
+        }
+        formData.append('title', values.title);
+        formData.append('description', values.description);
+        formData.append('icon', values.icon);
 
-    const imageFile = values.imageFile?.[0];
-    if (imageFile) {
-        // Supprimer l'ancienne image si elle existe
-        if (editingService?.image_url) {
-            const oldFileName = editingService.image_url.split('/').pop();
-            if (oldFileName) {
-                await supabase.storage.from('service-images').remove([oldFileName]);
-            }
+        if (values.imageFile?.[0]) {
+            formData.append('imageFile', values.imageFile[0]);
         }
 
-        const fileName = `${uuidv4()}-${imageFile.name}`;
-        const { data: fileData, error: uploadError } = await supabase.storage
-            .from('service-images')
-            .upload(fileName, imageFile);
+        const result = await saveService(formData);
 
-        if (uploadError) {
-            toast({ variant: "destructive", title: "Erreur d'envoi de l'image", description: uploadError.message });
-            return;
+        if (result.success) {
+            toast({ title: 'Succès', description: result.message });
+            setIsFormOpen(false);
+        } else {
+            toast({ variant: 'destructive', title: 'Erreur', description: result.message });
         }
-
-        const { data: urlData } = supabase.storage.from('service-images').getPublicUrl(fileName);
-        imageUrl = urlData.publicUrl;
-    }
-
-    const serviceData = {
-        title: values.title,
-        description: values.description,
-        icon: values.icon,
-        image_url: imageUrl,
-    };
-
-    let error;
-    if (editingService) {
-      const { error: updateError } = await supabase
-        .from('services')
-        .update(serviceData)
-        .match({ id: editingService.id });
-      error = updateError;
-    } else {
-      const newId = generateSlug(values.title);
-      const { error: insertError } = await supabase
-        .from('services')
-        .insert([{ ...serviceData, id: newId }]);
-      error = insertError;
-    }
-
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: "Erreur lors de l'enregistrement",
-        description: error.message,
-      });
-    } else {
-      toast({
-        title: `Service ${editingService ? 'mis à jour' : 'créé'}`,
-        description: `Le service a été enregistré avec succès.`,
-      });
-      setIsFormOpen(false);
-      fetchServices();
-    }
+    });
   }
   
   const handleDelete = async () => {
     if (!serviceToDelete) return;
-
-    if (serviceToDelete.image_url) {
-        const fileName = serviceToDelete.image_url.split('/').pop();
-        if (fileName) {
-            await supabase.storage.from('service-images').remove([fileName]);
+    
+    startTransition(async () => {
+        const result = await deleteService(serviceToDelete);
+        if (result.success) {
+            toast({ title: 'Succès', description: result.message });
+        } else {
+            toast({ variant: 'destructive', title: 'Erreur', description: result.message });
         }
-    }
-
-    const { error } = await supabase
-      .from('services')
-      .delete()
-      .match({ id: serviceToDelete.id });
-
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur de suppression',
-        description: "Le service n'a pas pu être supprimé.",
-      });
-    } else {
-      toast({
-        title: 'Service supprimé',
-        description: "Le service a été supprimé avec succès.",
-      });
-      setServices(services.filter(service => service.id !== serviceToDelete.id));
-    }
-    setServiceToDelete(null);
+        setServiceToDelete(null);
+    });
   };
 
   const IconComponent = ({ iconName }: { iconName: string }) => {
@@ -404,8 +346,8 @@ export default function ServicesPage() {
                         </ScrollArea>
                         <DialogFooter className="pt-4">
                             <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annuler</Button>
-                            <Button type="submit" disabled={form.formState.isSubmitting}>
-                                {form.formState.isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                            <Button type="submit" disabled={isPending}>
+                                {isPending ? 'Enregistrement...' : 'Enregistrer'}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -415,25 +357,15 @@ export default function ServicesPage() {
       )}
 
       {serviceToDelete && (
-        <AlertDialog open={!!serviceToDelete} onOpenChange={() => setServiceToDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer ce service ?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Cette action est irréversible et supprimera également l'image associée.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-                Supprimer
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          <DeleteConfirmationDialog
+            isOpen={!!serviceToDelete}
+            onOpenChange={() => setServiceToDelete(null)}
+            onConfirm={handleDelete}
+            title="Êtes-vous sûr de vouloir supprimer ce service ?"
+            description="Cette action est irréversible. Elle supprimera définitivement le service et son image associée."
+            isPending={isPending}
+          />
       )}
     </div>
   );
 }
-
-    
