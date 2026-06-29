@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: 'Kujuwa Consulting',
   description:
     'Votre partenaire stratégique pour des solutions durables et des résultats mesurables.',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({
