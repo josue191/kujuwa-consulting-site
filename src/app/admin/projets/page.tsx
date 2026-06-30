@@ -433,7 +433,7 @@ export default function ProjectsPage() {
                               const objectUrl = URL.createObjectURL(file);
                               return (
                                 <div key={index} className="relative aspect-video rounded-md overflow-hidden border bg-muted group">
-                                  <Image src={objectUrl} alt={file.name} fill className="object-cover" />
+                                  <img src={objectUrl} alt={file.name} className="h-full w-full object-cover" />
                                   <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <Button 
                                       type="button" 
