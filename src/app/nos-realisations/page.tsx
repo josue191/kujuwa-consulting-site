@@ -11,9 +11,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { realisationsContent } from '@/lib/data';
-import { Download, Search, ArrowRight } from 'lucide-react';
+import { Download, Search, ArrowRight, ImageIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import SearchForm from '@/components/realisations/SearchForm';
+import PhotoGalleryDialog from '@/components/realisations/PhotoGalleryDialog';
+
+type ProjectPhoto = {
+  id: string;
+  photo_url: string;
+  caption: string | null;
+};
 
 type Project = {
   id: string;
@@ -24,6 +31,7 @@ type Project = {
   image_url: string | null;
   report_url: string | null;
   created_at: string;
+  project_photos?: ProjectPhoto[];
 };
 
 export default async function RealisationsPage({
@@ -36,7 +44,7 @@ export default async function RealisationsPage({
 
   let query = supabase
     .from('projects')
-    .select('*')
+    .select('*, project_photos(*)')
     .order('year', { ascending: false });
 
   if (searchTerm) {
@@ -47,7 +55,6 @@ export default async function RealisationsPage({
 
   if (error) {
     console.error('Error fetching projects:', error.message);
-    // You might want to render an error state here
   }
 
   return (
@@ -78,6 +85,14 @@ export default async function RealisationsPage({
                             <ArrowRight className="h-20 w-20 text-muted-foreground/30" />
                         </div>
                     )}
+                    
+                    {/* Photos count badge on cover image */}
+                    {project.project_photos && project.project_photos.length > 0 && (
+                      <span className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 text-xs bg-black/75 text-white px-2.5 py-1 rounded-full backdrop-blur-sm font-semibold select-none">
+                        <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                        {project.project_photos.length} photos
+                      </span>
+                    )}
                 </div>
                 <CardHeader>
                   <CardTitle className="font-headline text-xl">
@@ -88,9 +103,12 @@ export default async function RealisationsPage({
                 <CardContent className="flex-grow">
                   <CardDescription className="line-clamp-3">{project.description}</CardDescription>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex flex-col gap-2.5 pt-0">
+                  {project.project_photos && project.project_photos.length > 0 && (
+                    <PhotoGalleryDialog photos={project.project_photos} projectTitle={project.title} />
+                  )}
                   {project.report_url && (
-                    <Button asChild size="lg">
+                    <Button asChild size="lg" className="w-full">
                       <a href={project.report_url} target="_blank" rel="noopener noreferrer">
                         <Download className="mr-2 h-4 w-4" />
                         Télécharger le rapport

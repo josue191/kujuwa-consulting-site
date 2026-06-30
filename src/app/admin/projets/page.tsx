@@ -8,7 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, Loader2, Trash2, Edit, Download, ArrowLeft, ArrowRight } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Loader2, Trash2, Edit, Download, ArrowLeft, ArrowRight, X, ImageIcon } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +44,15 @@ import { Label } from '@/components/ui/label';
 import { saveProject, deleteProject } from '@/lib/actions/projects';
 import DeleteConfirmationDialog from '@/components/admin/DeleteConfirmationDialog';
 
+type ProjectPhoto = {
+  id: string;
+  project_id: string;
+  photo_url: string;
+  caption: string | null;
+  display_order: number;
+  created_at: string;
+};
+
 type Project = {
   id: string;
   title: string;
@@ -53,6 +62,7 @@ type Project = {
   created_at: string;
   image_url: string | null;
   report_url: string | null;
+  project_photos?: ProjectPhoto[];
 };
 
 const ITEMS_PER_PAGE = 10;
@@ -88,7 +98,12 @@ export default function ProjectsPage() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalProjects, setTotalProjects] = useState(0);
+  const [triggerReload, setTriggerReload] = useState(0);
   const [isPending, startTransition] = useTransition();
+
+  // Multi-photo state
+  const [deletedPhotoIds, setDeletedPhotoIds] = useState<string[]>([]);
+  const [newPhotos, setNewPhotos] = useState<File[]>([]);
 
   const supabase = createClient();
   const { toast } = useToast();
@@ -111,7 +126,7 @@ export default function ProjectsPage() {
 
       const { data, error, count } = await supabase
         .from('projects')
-        .select('*', { count: 'exact' })
+        .select('*, project_photos(*)', { count: 'exact' })
         .order('year', { ascending: false })
         .range(from, to);
 
@@ -129,10 +144,12 @@ export default function ProjectsPage() {
     };
 
     fetchProjects();
-  }, [currentPage, supabase, toast]);
+  }, [currentPage, triggerReload, supabase, toast]);
 
   const handleEdit = (project: Project) => {
     setEditingProject(project);
+    setDeletedPhotoIds([]);
+    setNewPhotos([]);
     form.reset({
         title: project.title,
         category: project.category || '',
@@ -146,6 +163,8 @@ export default function ProjectsPage() {
 
   const handleAddNew = () => {
     setEditingProject(null);
+    setDeletedPhotoIds([]);
+    setNewPhotos([]);
     form.reset({
         title: '',
         category: '',
@@ -157,6 +176,23 @@ export default function ProjectsPage() {
     setIsFormOpen(true);
   };
   
+  const handleNewPhotosChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      setNewPhotos(prev => [...prev, ...filesArray]);
+    }
+  };
+
+  const removeNewPhoto = (index: number) => {
+    setNewPhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleDeleteExistingPhoto = (photoId: string) => {
+    setDeletedPhotoIds(prev => 
+      prev.includes(photoId) ? prev.filter(id => id !== photoId) : [...prev, photoId]
+    );
+  };
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
         const formData = new FormData();
@@ -177,10 +213,19 @@ export default function ProjectsPage() {
             formData.append('reportFile', values.reportFile[0]);
         }
 
+        // Append multi-photo data
+        deletedPhotoIds.forEach(id => {
+            formData.append('deletedPhotoIds', id);
+        });
+        newPhotos.forEach(file => {
+            formData.append('newPhotos', file);
+        });
+
         const result = await saveProject(formData);
 
         if (result.success) {
             toast({ title: 'Succès', description: result.message });
+            setTriggerReload(prev => prev + 1);
             setIsFormOpen(false);
         } else {
             toast({ variant: 'destructive', title: 'Erreur', description: result.message });
@@ -194,6 +239,7 @@ export default function ProjectsPage() {
         const result = await deleteProject(projectToDelete);
         if (result.success) {
             toast({ title: 'Succès', description: result.message });
+            setTriggerReload(prev => prev + 1);
             setProjectToDelete(null);
         } else {
             toast({ variant: 'destructive', title: 'Erreur', description: result.message });
@@ -219,12 +265,13 @@ export default function ProjectsPage() {
               <TableHead>Titre</TableHead>
               <TableHead>Catégorie</TableHead>
               <TableHead>Année</TableHead>
+              <TableHead>Photos de réalisation</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center h-24"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /></TableCell></TableRow>
             ) : projects.length > 0 ? (
               projects.map((project) => (
                 <TableRow key={project.id}>
@@ -238,6 +285,12 @@ export default function ProjectsPage() {
                   <TableCell className="font-medium">{project.title}</TableCell>
                   <TableCell>{project.category}</TableCell>
                   <TableCell>{project.year}</TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1 text-sm bg-primary/10 text-primary px-2.5 py-0.5 rounded-full font-medium">
+                      <ImageIcon className="h-3.5 w-3.5" />
+                      {project.project_photos?.length || 0} photo(s)
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
@@ -250,7 +303,7 @@ export default function ProjectsPage() {
                 </TableRow>
               ))
             ) : (
-              <TableRow><TableCell colSpan={5} className="text-center h-24">Aucun projet pour le moment.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center h-24">Aucun projet pour le moment.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -309,7 +362,7 @@ export default function ProjectsPage() {
                       name="imageFile"
                       render={({ field }) => (
                           <FormItem>
-                          <FormLabel>Image du projet (JPG, PNG - 5MB max)</FormLabel>
+                          <FormLabel>Image de couverture principale (JPG, PNG - 5MB max)</FormLabel>
                           <FormControl><Input type="file" accept="image/png, image/jpeg, image/webp" {...form.register("imageFile")} /></FormControl>
                           <FormMessage />
                           </FormItem>
@@ -321,6 +374,89 @@ export default function ProjectsPage() {
                         <Image src={editingProject.image_url} alt={editingProject.title} width={120} height={80} className="rounded-md object-cover" />
                     </div>
                   )}
+
+                  {/* Multi-photo Realization Section */}
+                  <div className="space-y-4 border-t pt-4">
+                    <h3 className="font-headline font-semibold text-lg text-foreground flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      Photos de réalisation
+                    </h3>
+                    
+                    {/* Existing photos management */}
+                    {editingProject && editingProject.project_photos && editingProject.project_photos.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>Photos existantes ({editingProject.project_photos.length})</Label>
+                        <div className="grid grid-cols-3 gap-3">
+                          {editingProject.project_photos.map((photo) => {
+                            const isDeleted = deletedPhotoIds.includes(photo.id);
+                            return (
+                              <div key={photo.id} className={`relative aspect-video rounded-md overflow-hidden border bg-muted group transition-all ${isDeleted ? 'opacity-40 line-through border-destructive' : ''}`}>
+                                <Image src={photo.photo_url} alt={photo.caption || ''} fill className="object-cover" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <Button 
+                                    type="button" 
+                                    variant={isDeleted ? "secondary" : "destructive"} 
+                                    size="icon" 
+                                    className="h-8 w-8 rounded-full"
+                                    onClick={() => toggleDeleteExistingPhoto(photo.id)}
+                                  >
+                                    {isDeleted ? <PlusCircle className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+                                  </Button>
+                                </div>
+                                {isDeleted && (
+                                  <div className="absolute inset-0 bg-destructive/20 flex items-center justify-center text-xs font-semibold text-destructive-foreground">
+                                    À supprimer
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* New photos input */}
+                    <div className="space-y-2">
+                      <Label>Ajouter des photos de réalisation (Plusieurs fichiers possibles)</Label>
+                      <Input 
+                        type="file" 
+                        accept="image/png, image/jpeg, image/webp" 
+                        multiple 
+                        onChange={handleNewPhotosChange}
+                      />
+                      
+                      {newPhotos.length > 0 && (
+                        <div className="mt-2 space-y-2">
+                          <Label className="text-xs text-muted-foreground">Nouvelles photos sélectionnées ({newPhotos.length}) :</Label>
+                          <div className="grid grid-cols-3 gap-3">
+                            {newPhotos.map((file, index) => {
+                              const objectUrl = URL.createObjectURL(file);
+                              return (
+                                <div key={index} className="relative aspect-video rounded-md overflow-hidden border bg-muted group">
+                                  <Image src={objectUrl} alt={file.name} fill className="object-cover" />
+                                  <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Button 
+                                      type="button" 
+                                      variant="destructive" 
+                                      size="icon" 
+                                      className="h-8 w-8 rounded-full"
+                                      onClick={() => removeNewPhoto(index)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-1 py-0.5 text-[10px] text-white truncate">
+                                    {file.name}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <FormField
                       control={form.control}
                       name="reportFile"
@@ -337,10 +473,10 @@ export default function ProjectsPage() {
                         <Label>Rapport actuel</Label>
                         <div className="flex items-center gap-2">
                            <Button asChild variant="outline" size="sm">
-                                <a href={editingProject.report_url} target="_blank" rel="noopener noreferrer">
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Voir le rapport
-                                </a>
+                                 <a href={editingProject.report_url} target="_blank" rel="noopener noreferrer">
+                                     <Download className="mr-2 h-4 w-4" />
+                                     Voir le rapport
+                                 </a>
                            </Button>
                         </div>
                     </div>

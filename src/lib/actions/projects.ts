@@ -60,14 +60,67 @@ export async function saveProject(formData: FormData) {
       report_url: reportUrl,
     };
 
-    const { error } = id
-      ? await supabase.from('projects').update(projectData).match({ id })
-      : await supabase.from('projects').insert([projectData]);
+    // Use select() to get the ID of the inserted/updated project
+    let projectId = id;
+    if (id) {
+      const { error } = await supabase.from('projects').update(projectData).match({ id });
+      if (error) throw error;
+    } else {
+      const { data, error } = await supabase.from('projects').insert([projectData]).select('id').single();
+      if (error) throw error;
+      projectId = data.id;
+    }
 
-    if (error) throw error;
+    if (!projectId) {
+      throw new Error("Impossible d'obtenir l'identifiant du projet.");
+    }
+
+    // Handle deleted photos
+    const deletedPhotoIds = formData.getAll('deletedPhotoIds') as string[];
+    if (deletedPhotoIds.length > 0) {
+      // Get URLs to delete from storage
+      const { data: photosToDelete, error: fetchError } = await supabase
+        .from('project_photos')
+        .select('photo_url')
+        .in('id', deletedPhotoIds);
+      
+      if (!fetchError && photosToDelete) {
+        for (const photo of photosToDelete) {
+          const fileName = photo.photo_url.split('/').pop();
+          if (fileName) {
+            await supabase.storage.from('project-images').remove([fileName]);
+          }
+        }
+      }
+
+      const { error: deleteError } = await supabase
+        .from('project_photos')
+        .delete()
+        .in('id', deletedPhotoIds);
+      if (deleteError) throw deleteError;
+    }
+
+    // Handle new photos
+    const newPhotos = formData.getAll('newPhotos') as File[];
+    if (newPhotos.length > 0) {
+      for (const file of newPhotos) {
+        if (file.size > 0) {
+          const photoUrl = await uploadFile(supabase, file, 'project-images');
+          const { error: insertError } = await supabase.from('project_photos').insert([
+            {
+              project_id: projectId,
+              photo_url: photoUrl,
+              caption: file.name.substring(0, file.name.lastIndexOf('.')) || 'Photo de réalisation',
+            }
+          ]);
+          if (insertError) throw insertError;
+        }
+      }
+    }
     
     revalidatePath('/admin/projets');
     revalidatePath('/nos-realisations');
+    revalidatePath('/');
 
     return { success: true, message: `Projet ${id ? 'mis à jour' : 'créé'} avec succès.` };
   } catch (error: any) {
@@ -80,6 +133,21 @@ export async function deleteProject(project: { id: string; image_url: string | n
   const supabase = createClient();
 
   try {
+    // Get all project photos first to delete from storage
+    const { data: photos, error: photosError } = await supabase
+      .from('project_photos')
+      .select('photo_url')
+      .eq('project_id', project.id);
+    
+    if (!photosError && photos) {
+      for (const photo of photos) {
+        const fileName = photo.photo_url.split('/').pop();
+        if (fileName) {
+          await supabase.storage.from('project-images').remove([fileName]);
+        }
+      }
+    }
+
     if (project.image_url) {
       const fileName = project.image_url.split('/').pop();
       if (fileName) {
@@ -100,6 +168,7 @@ export async function deleteProject(project: { id: string; image_url: string | n
 
     revalidatePath('/admin/projets');
     revalidatePath('/nos-realisations');
+    revalidatePath('/');
     
     return { success: true, message: 'Projet supprimé.' };
   } catch (error: any) {
